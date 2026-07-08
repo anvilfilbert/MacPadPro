@@ -151,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             catalog: extensionCatalog,
             installedProvider: { [weak self] in self?.installedExtensions ?? .bundledDefault },
             hasLocalPackage: { [weak self] extensionItem in
-                self?.extensionPackageStore.hasPackage(for: extensionItem.id) ?? false
+                self?.extensionPackageStore.hasValidatedPackage(for: extensionItem) ?? false
             },
             refreshCatalogFromRepository: { [weak self] in
                 guard let self else { return .default }

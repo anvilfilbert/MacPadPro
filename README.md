@@ -47,7 +47,7 @@ Fresh installs start with downloadable extensions uninstalled so users can add t
 Open editor windows resolve the current active extension state when applying themes, running formatters, and detecting languages.
 Downloaded `.macpadproext` packages are stored in the user's Application Support folder under `MacPad Pro/Extensions`.
 Downloaded packages are decoded and validated against the selected catalog entry before they are saved and loaded.
-The Load control is enabled only when a matching local package file is present, and the package is validated again before it is loaded.
+The Load control is enabled only when a valid matching local package file is present, and the package is validated again before it is loaded.
 
 Each downloadable extension owns its own source directory under:
 

@@ -130,6 +130,15 @@ public struct ExtensionPackageStore {
         FileManager.default.fileExists(atPath: packageURL(for: extensionID).path)
     }
 
+    public func hasValidatedPackage(for extensionItem: DownloadableExtension) -> Bool {
+        do {
+            try validateInstalledPackage(for: extensionItem)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     public func validateInstalledPackage(for extensionItem: DownloadableExtension) throws {
         let packageData = try Data(contentsOf: packageURL(for: extensionItem.id))
         let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
