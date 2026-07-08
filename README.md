@@ -4,19 +4,23 @@ MacPad Pro is the experimental extension-friendly edition of [MacPad](https://gi
 
 MacPad stays small and Notepad-like. MacPad Pro is where customization and developer-oriented features can grow without changing the simple app.
 
-## Current Pro Extensions
+## Pro Capabilities
 
-- Document Browser: detachable, resizable, and closable open-document browser
-- Themes: System, Night, Paper, and Terminal
-- Language recognition in the status bar for common code and markup files
-- Formatter extensions:
-  - Format As JSON
-  - Format C/PHP/C++ brace-style code
-- Text commands:
+- Built-in language recognition in the status bar for common code and markup files
+- Built-in text commands:
   - Trim trailing whitespace
   - Sort lines
   - Uppercase
   - Lowercase
+
+Available downloadable extensions:
+
+- Document Browser: detachable, resizable, and closable open-document browser
+- Pro Themes: Night, Paper, and Terminal
+- Formatter extensions:
+  - Format As JSON
+  - Format C/PHP/C++ brace-style code
+- Text command extensions:
   - Pretty Print JSON
 
 Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
@@ -39,6 +43,7 @@ https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensio
 
 Use `Extensions > Manage Extensions...` to refresh the MacPadPro GitHub catalog, search extensions by name, id, description, or type, download extension packages, load already downloaded local packages, activate/deactivate extensions without deleting them, or delete them one by one.
 Installed and deactivated extension ids are stored locally and control which extension menu items appear.
+Fresh installs start with downloadable extensions uninstalled so users can add them one by one.
 Open editor windows resolve the current active extension state when applying themes, running formatters, and detecting languages.
 Downloaded `.macpadproext` packages are stored in the user's Application Support folder under `MacPad Pro/Extensions`.
 Downloaded packages are decoded and validated against the selected catalog entry before they are saved and loaded.

@@ -5,16 +5,24 @@ final class ExtensionRegistryTests: XCTestCase {
     func testDefaultRegistryIncludesThemeLanguageCommandAndFormatterExtensions() {
         let registry = ExtensionRegistry.default
 
-        XCTAssertTrue(registry.themes.contains { $0.id == "night" })
         XCTAssertTrue(registry.languages.contains { $0.id == "php" })
         XCTAssertTrue(registry.textCommands.contains { $0.id == "trim-trailing-whitespace" })
-        XCTAssertTrue(registry.formatters.contains { $0.id == "json" })
-        XCTAssertTrue(registry.formatters.contains { $0.id == "c-family" })
-        XCTAssertTrue(registry.documentBrowsers.contains { $0.id == "open-documents" })
+        XCTAssertEqual(registry.themes.map(\.id), ["system"])
+        XCTAssertTrue(registry.formatters.isEmpty)
+        XCTAssertTrue(registry.documentBrowsers.isEmpty)
+    }
+
+    func testBundledDefaultDoesNotPreinstallDownloadableExtensions() {
+        let installed = InstalledExtensions.bundledDefault
+
+        XCTAssertTrue(installed.installedIDs.isEmpty)
+        for extensionItem in ExtensionCatalog.default.extensions {
+            XCTAssertFalse(installed.isInstalled(extensionItem.id))
+        }
     }
 
     func testDocumentBrowserExtensionDeclaresDetachedResizableClosableWindowCapabilities() throws {
-        let registry = ExtensionRegistry.default
+        let registry = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["open-documents"]))
         let browser = try XCTUnwrap(registry.documentBrowsers.first { $0.id == "open-documents" })
 
         XCTAssertEqual(browser.title, "Document Browser")
@@ -404,7 +412,7 @@ final class ExtensionRegistryTests: XCTestCase {
     }
 
     func testJsonFormatterPrettyPrintsDocument() throws {
-        let registry = ExtensionRegistry.default
+        let registry = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["json-formatter"]))
         let formatter = try XCTUnwrap(registry.formatter(forLanguageID: "json"))
 
         let formatted = try formatter.format("{\"b\":2,\"a\":1}")
@@ -418,7 +426,7 @@ final class ExtensionRegistryTests: XCTestCase {
     }
 
     func testCFamilyFormatterFormatsCppBracesAndStatements() throws {
-        let registry = ExtensionRegistry.default
+        let registry = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["c-family-formatter"]))
         let formatter = try XCTUnwrap(registry.formatter(forLanguageID: "cpp"))
 
         let formatted = try formatter.format("int main(){return 0;}")
@@ -431,7 +439,7 @@ final class ExtensionRegistryTests: XCTestCase {
     }
 
     func testCFamilyFormatterFormatsPhpBracesAndStatements() throws {
-        let registry = ExtensionRegistry.default
+        let registry = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["c-family-formatter"]))
         let formatter = try XCTUnwrap(registry.formatter(forLanguageID: "php"))
 
         let formatted = try formatter.format("<?php\nif($ready){echo \"yes\";}")

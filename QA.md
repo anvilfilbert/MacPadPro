@@ -27,6 +27,7 @@ Run this checklist before publishing a release.
 
 ## Extensions
 
+- Fresh installs start with downloadable extensions uninstalled.
 - Downloadable extension catalog entries are one extension per package URL.
 - Each downloadable extension has its own source directory under `Sources/NotepadMacCore/Extensions/<extension-id>/`.
 - Each downloadable extension has its own repository package directory under `RepositoryExtensions/<extension-id>/`.

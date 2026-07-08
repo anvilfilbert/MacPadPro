@@ -338,12 +338,7 @@ public struct ExtensionRegistry: Sendable {
 }
 
 private enum BuiltInExtensions {
-    static let defaultInstalledExtensionIDs: Set<String> = [
-        OpenDocumentsExtensionPackage.id,
-        JSONFormatterExtensionPackage.id,
-        CFamilyFormatterExtensionPackage.id,
-        ProThemesExtensionPackage.id
-    ]
+    static let defaultInstalledExtensionIDs: Set<String> = []
 
     static let systemThemes: [EditorTheme] = [
         EditorTheme(
