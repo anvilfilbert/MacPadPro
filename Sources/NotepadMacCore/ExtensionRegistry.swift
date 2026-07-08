@@ -214,7 +214,8 @@ public struct ExtensionRegistry: Sendable {
     public static func loaded(installedExtensions: InstalledExtensions) -> ExtensionRegistry {
         let themes = BuiltInExtensions.systemThemes
             + (installedExtensions.isActive(ProThemesExtensionPackage.id) ? ProThemesExtensionPackage.themes : [])
-        let formatters = installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.formatters : []
+        let formatters = (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.formatters : [])
+            + (installedExtensions.isActive(CFamilyFormatterExtensionPackage.id) ? CFamilyFormatterExtensionPackage.formatters : [])
         let textCommands = BuiltInExtensions.coreTextCommands
             + (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.textCommands : [])
         let documentBrowsers = installedExtensions.isActive(OpenDocumentsExtensionPackage.id) ? OpenDocumentsExtensionPackage.documentBrowsers : []
@@ -274,6 +275,7 @@ private enum BuiltInExtensions {
     static let defaultInstalledExtensionIDs: Set<String> = [
         OpenDocumentsExtensionPackage.id,
         JSONFormatterExtensionPackage.id,
+        CFamilyFormatterExtensionPackage.id,
         ProThemesExtensionPackage.id
     ]
 
@@ -341,6 +343,7 @@ private enum BuiltInExtensions {
     static let downloadableExtensions: [DownloadableExtension] = [
         OpenDocumentsExtensionPackage.catalogEntry,
         JSONFormatterExtensionPackage.catalogEntry,
+        CFamilyFormatterExtensionPackage.catalogEntry,
         ProThemesExtensionPackage.catalogEntry
     ]
 }

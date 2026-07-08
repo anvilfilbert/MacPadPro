@@ -9,6 +9,7 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertTrue(registry.languages.contains { $0.id == "php" })
         XCTAssertTrue(registry.textCommands.contains { $0.id == "trim-trailing-whitespace" })
         XCTAssertTrue(registry.formatters.contains { $0.id == "json" })
+        XCTAssertTrue(registry.formatters.contains { $0.id == "c-family" })
         XCTAssertTrue(registry.documentBrowsers.contains { $0.id == "open-documents" })
     }
 
@@ -59,6 +60,7 @@ final class ExtensionRegistryTests: XCTestCase {
 
         XCTAssertTrue(catalog.extensions.contains { $0.id == "open-documents" && $0.kind == .documentBrowser })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "json-formatter" && $0.kind == .formatter })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "c-family-formatter" && $0.kind == .formatter })
         XCTAssertEqual(Set(catalog.extensions.map(\.id)).count, catalog.extensions.count)
     }
 
@@ -78,6 +80,8 @@ final class ExtensionRegistryTests: XCTestCase {
         let catalog = ExtensionCatalog.default
 
         XCTAssertEqual(catalog.search(matching: "json").map(\.id), ["json-formatter"])
+        XCTAssertEqual(catalog.search(matching: "php").map(\.id), ["c-family-formatter"])
+        XCTAssertEqual(catalog.search(matching: "c++").map(\.id), ["c-family-formatter"])
         XCTAssertEqual(catalog.search(matching: "detached").map(\.id), ["open-documents"])
         XCTAssertEqual(catalog.search(matching: "theme").map(\.id), ["pro-themes"])
         XCTAssertEqual(catalog.search(matching: "OPEN").map(\.id), ["open-documents"])
@@ -158,6 +162,10 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(
             catalog.extension(withID: "json-formatter")?.description,
             "Format JSON documents with stable indentation and sorted keys."
+        )
+        XCTAssertEqual(
+            catalog.extension(withID: "c-family-formatter")?.description,
+            "Format PHP, C, C++, Java, JavaScript, TypeScript, and CSS brace-style code."
         )
     }
 
@@ -257,6 +265,15 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(withFormatter.formatter(named: "json")?.id, "json")
     }
 
+    func testRegistryLoadsCFamilyFormatterOnlyWhenInstalled() {
+        let withoutFormatter = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: []))
+        let withFormatter = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["c-family-formatter"]))
+
+        XCTAssertNil(withoutFormatter.formatter(named: "c-family"))
+        XCTAssertEqual(withFormatter.formatter(forLanguageID: "cpp")?.id, "c-family")
+        XCTAssertEqual(withFormatter.formatter(forLanguageID: "php")?.id, "c-family")
+    }
+
     func testRegistryAlwaysKeepsSystemThemeAndLoadsProThemesWhenInstalled() {
         let base = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: []))
         let withThemes = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["pro-themes"]))
@@ -288,6 +305,33 @@ final class ExtensionRegistryTests: XCTestCase {
         {
           "a" : 1,
           "b" : 2
+        }
+        """)
+    }
+
+    func testCFamilyFormatterFormatsCppBracesAndStatements() throws {
+        let registry = ExtensionRegistry.default
+        let formatter = try XCTUnwrap(registry.formatter(forLanguageID: "cpp"))
+
+        let formatted = try formatter.format("int main(){return 0;}")
+
+        XCTAssertEqual(formatted, """
+        int main() {
+          return 0;
+        }
+        """)
+    }
+
+    func testCFamilyFormatterFormatsPhpBracesAndStatements() throws {
+        let registry = ExtensionRegistry.default
+        let formatter = try XCTUnwrap(registry.formatter(forLanguageID: "php"))
+
+        let formatted = try formatter.format("<?php\nif($ready){echo \"yes\";}")
+
+        XCTAssertEqual(formatted, """
+        <?php
+        if($ready) {
+          echo "yes";
         }
         """)
     }

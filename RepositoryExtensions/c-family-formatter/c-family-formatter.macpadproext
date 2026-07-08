@@ -1,0 +1,7 @@
+{
+  "id": "c-family-formatter",
+  "title": "C/PHP Formatter",
+  "description": "Format PHP, C, C++, Java, JavaScript, TypeScript, and CSS brace-style code.",
+  "version": "1.0.0",
+  "kind": "formatter"
+}

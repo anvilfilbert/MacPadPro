@@ -17,6 +17,14 @@
       "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/json-formatter/json-formatter.macpadproext"
     },
     {
+      "id": "c-family-formatter",
+      "title": "C/PHP Formatter",
+      "description": "Format PHP, C, C++, Java, JavaScript, TypeScript, and CSS brace-style code.",
+      "version": "1.0.0",
+      "kind": "formatter",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/c-family-formatter/c-family-formatter.macpadproext"
+    },
+    {
       "id": "pro-themes",
       "title": "Pro Themes",
       "description": "Add Night, Paper, and Terminal editor themes.",

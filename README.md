@@ -11,6 +11,7 @@ MacPad stays small and Notepad-like. MacPad Pro is where customization and devel
 - Language recognition in the status bar for common code and markup files
 - Formatter extensions:
   - Format As JSON
+  - Format C/PHP/C++ brace-style code
 - Text commands:
   - Trim trailing whitespace
   - Sort lines
@@ -56,6 +57,7 @@ Current extension packages:
 
 - `Extensions/open-documents/OpenDocumentsExtensionPackage.swift`
 - `Extensions/json-formatter/JSONFormatterExtensionPackage.swift`
+- `Extensions/c-family-formatter/CFamilyFormatterExtensionPackage.swift`
 - `Extensions/pro-themes/ProThemesExtensionPackage.swift`
 
 ## Build

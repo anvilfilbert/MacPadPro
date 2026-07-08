@@ -41,6 +41,7 @@ Run this checklist before publishing a release.
 - Themes can switch between System, Night, Paper, and Terminal.
 - Status bar language recognition updates when opening common source files.
 - `Extensions > Format As > JSON` pretty-prints valid JSON.
+- `Extensions > Format As > C / PHP / C++` formats PHP and C++ brace-style code with stable indentation.
 - Text commands work: trim trailing whitespace, sort lines, uppercase, lowercase, and pretty print JSON.
 
 ## Editing
