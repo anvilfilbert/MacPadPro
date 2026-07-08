@@ -4,12 +4,22 @@ import NotepadMacCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let sessionDefaultsKey = "MacPadPro.SessionState.v1"
+    private let installedExtensionsDefaultsKey = "MacPadPro.InstalledExtensions.v1"
+    private let extensionCatalog = ExtensionCatalog.default
+    private var installedExtensions = InstalledExtensions.bundledDefault
     private var windows: [EditorWindowController] = []
+    private var documentBrowserController: DocumentBrowserWindowController?
+    private var extensionManagerController: ExtensionManagerWindowController?
     private var isRestoringSession = false
+
+    private var extensionRegistry: ExtensionRegistry {
+        ExtensionRegistry.loaded(installedExtensions: installedExtensions)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
-        NSApp.mainMenu = MainMenuFactory.makeMenu(target: self)
+        installedExtensions = loadInstalledExtensions()
+        rebuildMainMenu()
         if !restorePreviousSession() {
             openNewDocument(nil)
         }
@@ -78,9 +88,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let controller else { return }
             self?.windows.removeAll { $0 === controller }
             self?.saveSession()
+            self?.refreshDocumentBrowser()
         }
         controller.onStateChange = { [weak self] in
             self?.saveSession()
+            self?.refreshDocumentBrowser()
         }
         return controller
     }
@@ -98,6 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         saveSession()
+        refreshDocumentBrowser()
     }
 
     private var keyWindowController: EditorWindowController? {
@@ -121,9 +134,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func chooseFont(_ sender: Any?) { keyWindowController?.chooseFont(sender) }
     @objc func applyTheme(_ sender: NSMenuItem) { keyWindowController?.applyTheme(at: sender.tag) }
     @objc func runTextCommand(_ sender: NSMenuItem) {
-        guard let rawValue = sender.representedObject as? String,
-              let command = TextCommand(rawValue: rawValue) else { return }
+        guard let commandID = sender.representedObject as? String,
+              let command = extensionRegistry.textCommands.first(where: { $0.id == commandID }) else { return }
         keyWindowController?.runTextCommand(command)
+    }
+    @objc func runCodeFormatter(_ sender: NSMenuItem) {
+        guard let formatterID = sender.representedObject as? String else { return }
+        keyWindowController?.runCodeFormatter(id: formatterID)
+    }
+    @objc func showExtensionManager(_ sender: Any?) {
+        let controller = extensionManagerController ?? ExtensionManagerWindowController(
+            catalog: extensionCatalog,
+            installedProvider: { [weak self] in self?.installedExtensions ?? .bundledDefault },
+            loadExtension: { [weak self] id in self?.loadExtension(id: id) },
+            deleteExtension: { [weak self] id in self?.deleteExtension(id: id) }
+        )
+        controller.onClose = { [weak self] in
+            self?.extensionManagerController = nil
+        }
+        extensionManagerController = controller
+        controller.refresh()
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+    }
+
+    @objc func showDocumentBrowser(_ sender: NSMenuItem) {
+        guard let browserID = sender.representedObject as? String,
+              let browser = extensionRegistry.documentBrowsers.first(where: { $0.id == browserID }) else { return }
+
+        let controller = documentBrowserController ?? DocumentBrowserWindowController(
+            title: browser.title,
+            documentsProvider: { [weak self] in self?.documentBrowserItems() ?? [] },
+            openDocument: { [weak self] item in self?.focusDocumentBrowserItem(id: item.id) }
+        )
+        controller.onClose = { [weak self] in
+            self?.documentBrowserController = nil
+        }
+        documentBrowserController = controller
+        controller.refresh()
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
     }
 
     private func restorePreviousSession() -> Bool {
@@ -198,5 +248,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         return sessions
+    }
+
+    private func documentBrowserItems() -> [DocumentBrowserItem] {
+        windows.map(\.documentBrowserItem)
+    }
+
+    private func focusDocumentBrowserItem(id: String) {
+        windows.first { $0.documentBrowserItem.id == id }?.focusDocument()
+    }
+
+    private func refreshDocumentBrowser() {
+        documentBrowserController?.refresh()
+    }
+
+    private func loadInstalledExtensions() -> InstalledExtensions {
+        guard let data = UserDefaults.standard.data(forKey: installedExtensionsDefaultsKey),
+              let installed = try? JSONDecoder().decode(InstalledExtensions.self, from: data) else {
+            return .bundledDefault
+        }
+        return installed
+    }
+
+    private func saveInstalledExtensions() {
+        if let data = try? JSONEncoder().encode(installedExtensions) {
+            UserDefaults.standard.set(data, forKey: installedExtensionsDefaultsKey)
+        }
+    }
+
+    private func loadExtension(id: String) {
+        installedExtensions.load(id)
+        saveInstalledExtensions()
+        reloadExtensions()
+    }
+
+    private func deleteExtension(id: String) {
+        installedExtensions.delete(id)
+        saveInstalledExtensions()
+        reloadExtensions()
+    }
+
+    private func reloadExtensions() {
+        if !installedExtensions.isInstalled("open-documents") {
+            documentBrowserController?.close()
+            documentBrowserController = nil
+        }
+        extensionManagerController?.refresh()
+        rebuildMainMenu()
+    }
+
+    private func rebuildMainMenu() {
+        NSApp.mainMenu = MainMenuFactory.makeMenu(target: self, extensionRegistry: extensionRegistry)
     }
 }

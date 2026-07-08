@@ -21,7 +21,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     private var lineEnding: LineEnding = .windows
     private var baseFont: NSFont
     private var shouldRestoreInSession = true
-    private var currentTheme = EditorTheme.all[0]
+    private let extensionRegistry = ExtensionRegistry.default
+    private var currentTheme = ExtensionRegistry.default.themes[0]
 
     init() {
         baseFont = NSFont.monospacedSystemFont(ofSize: defaultFontSize, weight: .regular)
@@ -78,6 +79,20 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
             zoomPercent: zoomPercent,
             lineEnding: lineEnding
         )
+    }
+
+    var documentBrowserItem: DocumentBrowserItem {
+        DocumentBrowserItem(
+            id: stateID,
+            title: fileURL?.lastPathComponent ?? "Untitled",
+            location: fileURL?.path ?? "Unsaved Document"
+        )
+    }
+
+    func focusDocument() {
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func restoreSessionState(_ state: EditorSessionState) {
@@ -207,8 +222,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     }
 
     func applyTheme(at index: Int) {
-        guard EditorTheme.all.indices.contains(index) else { return }
-        currentTheme = EditorTheme.all[index]
+        guard extensionRegistry.themes.indices.contains(index) else { return }
+        currentTheme = extensionRegistry.themes[index]
         applyTheme()
         notifyStateChanged()
     }
@@ -223,6 +238,19 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
             notifyStateChanged()
         } catch {
             showError("Could not run \(command.title).", detail: error.localizedDescription)
+        }
+    }
+
+    func runCodeFormatter(id formatterID: String) {
+        guard let formatter = extensionRegistry.formatter(named: formatterID) else { return }
+        do {
+            textView.string = try formatter.format(textView.string)
+            shouldRestoreInSession = true
+            updateTitle()
+            updateStatusBar()
+            notifyStateChanged()
+        } catch {
+            showError("Could not format with \(formatter.name).", detail: error.localizedDescription)
         }
     }
 
@@ -502,7 +530,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     private func updateStatusBar() {
         guard statusBarVisible else { return }
         let position = TextMetrics.cursorPosition(in: textView.string, selectedLocation: textView.selectedRange().location)
-        let language = LanguageDetector.language(for: fileURL, text: textView.string)
+        let language = extensionRegistry.detectLanguage(for: fileURL, text: textView.string)
         statusBar.stringValue = "Ln \(position.line), Col \(position.column)  |  \(zoomPercent)%  |  \(language)  |  \(lineEnding.statusLabel)  |  UTF-8"
     }
 

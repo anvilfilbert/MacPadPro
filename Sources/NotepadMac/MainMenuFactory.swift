@@ -1,8 +1,9 @@
 import AppKit
+import NotepadMacCore
 
 @MainActor
 enum MainMenuFactory {
-    static func makeMenu(target: AnyObject) -> NSMenu {
+    static func makeMenu(target: AnyObject, extensionRegistry: ExtensionRegistry) -> NSMenu {
         let mainMenu = NSMenu(title: "Main Menu")
 
         let appMenu = NSMenu(title: "MacPad Pro")
@@ -50,8 +51,19 @@ enum MainMenuFactory {
         mainMenu.addItem(rootItem(for: formatMenu))
 
         let extensionsMenu = NSMenu(title: "Extensions")
+        addItem("Manage Extensions...", to: extensionsMenu, action: #selector(AppDelegate.showExtensionManager(_:)), target: target)
+        extensionsMenu.addItem(.separator())
+
+        for browser in extensionRegistry.documentBrowsers {
+            let item = addItem(browser.title, to: extensionsMenu, action: #selector(AppDelegate.showDocumentBrowser(_:)), target: target)
+            item.representedObject = browser.id
+        }
+        if !extensionRegistry.documentBrowsers.isEmpty {
+            extensionsMenu.addItem(.separator())
+        }
+
         let themesMenu = NSMenu(title: "Themes")
-        for (index, theme) in EditorTheme.all.enumerated() {
+        for (index, theme) in extensionRegistry.themes.enumerated() {
             let item = addItem(theme.name, to: themesMenu, action: #selector(AppDelegate.applyTheme(_:)), target: target)
             item.tag = index
         }
@@ -59,9 +71,20 @@ enum MainMenuFactory {
         themesRoot.submenu = themesMenu
         extensionsMenu.addItem(themesRoot)
         extensionsMenu.addItem(.separator())
-        for command in TextCommand.allCases {
+
+        let formattersMenu = NSMenu(title: "Format As")
+        for formatter in extensionRegistry.formatters {
+            let item = addItem(formatter.name, to: formattersMenu, action: #selector(AppDelegate.runCodeFormatter(_:)), target: target)
+            item.representedObject = formatter.id
+        }
+        let formatRoot = NSMenuItem(title: "Format As", action: nil, keyEquivalent: "")
+        formatRoot.submenu = formattersMenu
+        extensionsMenu.addItem(formatRoot)
+        extensionsMenu.addItem(.separator())
+
+        for command in extensionRegistry.textCommands {
             let item = addItem(command.title, to: extensionsMenu, action: #selector(AppDelegate.runTextCommand(_:)), target: target)
-            item.representedObject = command.rawValue
+            item.representedObject = command.id
         }
         mainMenu.addItem(rootItem(for: extensionsMenu))
 

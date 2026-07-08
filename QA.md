@@ -27,8 +27,14 @@ Run this checklist before publishing a release.
 
 ## Extensions
 
+- Downloadable extension catalog entries are one extension per package URL.
+- `Extensions > Manage Extensions...` opens a resizable extension manager with Load and Delete controls.
+- Loading or deleting an extension updates the Extensions menu without restarting the app.
+- `Extensions > Document Browser` opens a detached, resizable, and closable window listing open documents.
+- Double-clicking a document in the Document Browser brings that document window forward.
 - Themes can switch between System, Night, Paper, and Terminal.
 - Status bar language recognition updates when opening common source files.
+- `Extensions > Format As > JSON` pretty-prints valid JSON.
 - Text commands work: trim trailing whitespace, sort lines, uppercase, lowercase, and pretty print JSON.
 
 ## Editing
