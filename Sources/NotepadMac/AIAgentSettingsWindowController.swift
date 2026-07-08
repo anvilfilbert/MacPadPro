@@ -14,7 +14,7 @@ final class AIAgentSettingsWindowController: NSWindowController, NSWindowDelegat
     init(configuration: AIAgentConfiguration?, saveSettings: @escaping (AIAgentConfiguration?) -> Void) {
         self.saveSettings = saveSettings
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 220),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 260),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -70,7 +70,8 @@ final class AIAgentSettingsWindowController: NSWindowController, NSWindowDelegat
             grid.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             grid.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
             buttons.trailingAnchor.constraint(equalTo: grid.trailingAnchor),
-            buttons.topAnchor.constraint(equalTo: grid.bottomAnchor, constant: 18)
+            buttons.topAnchor.constraint(equalTo: grid.bottomAnchor, constant: 18),
+            buttons.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20)
         ])
     }
 
