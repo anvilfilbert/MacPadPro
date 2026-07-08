@@ -1,6 +1,6 @@
 # MacPad Pro
 
-MacPad Pro is the experimental extension-friendly edition of MacPad.
+MacPad Pro is the experimental extension-friendly edition of MacPad[.](https://github.com/anvilfilbert/MacPad)
 
 MacPad stays small and Notepad-like. MacPad Pro is where customization and developer-oriented features can grow without changing the simple app.
 
