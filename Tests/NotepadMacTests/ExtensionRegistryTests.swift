@@ -482,6 +482,14 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(registry.detectLanguage(for: URL(fileURLWithPath: "/tmp/main.cpp"), text: ""), "C++")
     }
 
+    func testLanguageDetectionExposesLanguageIDForSyntaxHighlighting() {
+        let registry = ExtensionRegistry.default
+
+        XCTAssertEqual(registry.detectLanguageDefinition(for: URL(fileURLWithPath: "/tmp/index.php"), text: "")?.id, "php")
+        XCTAssertEqual(registry.detectLanguageDefinition(for: URL(fileURLWithPath: "/tmp/main.cpp"), text: "")?.id, "cpp")
+        XCTAssertEqual(registry.detectLanguageDefinition(for: nil, text: "{\"name\":\"MacPad Pro\"}")?.id, "json")
+    }
+
     func testLanguageDetectionRecognizesJsonByContent() {
         let registry = ExtensionRegistry.default
 

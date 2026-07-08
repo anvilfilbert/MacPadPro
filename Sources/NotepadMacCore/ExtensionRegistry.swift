@@ -306,10 +306,23 @@ public struct ExtensionRegistry: Sendable {
     }
 
     public func detectLanguage(for fileURL: URL?, text: String) -> String {
+        if let language = detectLanguageDefinition(for: fileURL, text: text) {
+            return language.name
+        }
+
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("#!/") {
+            return "Script"
+        }
+
+        return "Plain Text"
+    }
+
+    public func detectLanguageDefinition(for fileURL: URL?, text: String) -> LanguageDefinition? {
         if let fileURL {
             let ext = fileURL.pathExtension.lowercased()
             if let language = languages.first(where: { $0.fileExtensions.contains(ext) }) {
-                return language.name
+                return language
             }
         }
 
@@ -320,17 +333,17 @@ public struct ExtensionRegistry: Sendable {
             if let language = languages.first(where: { definition in
                 definition.shebangHints.contains(where: line.contains)
             }) {
-                return language.name
+                return language
             }
-            return "Script"
+            return nil
         }
         if looksLikeJSON(trimmed) {
-            return "JSON"
+            return languages.first { $0.id == "json" }
         }
         if trimmed.hasPrefix("<!doctype html") || trimmed.hasPrefix("<html") {
-            return "HTML"
+            return languages.first { $0.id == "html" }
         }
-        return "Plain Text"
+        return languages.first { $0.id == "plain-text" }
     }
 
     public func formatter(forLanguageID languageID: String) -> (any CodeFormatter)? {

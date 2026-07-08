@@ -24,6 +24,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     private let extensionRegistryProvider: () -> ExtensionRegistry
     private var extensionRegistry: ExtensionRegistry { extensionRegistryProvider() }
     private var currentTheme = ExtensionRegistry.default.themes[0]
+    private let syntaxHighlighter = SyntaxHighlighter()
+    private var isApplyingSyntaxHighlighting = false
 
     init(extensionRegistryProvider: @escaping () -> ExtensionRegistry = { .default }) {
         self.extensionRegistryProvider = extensionRegistryProvider
@@ -62,6 +64,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
             shouldRestoreInSession = true
             updateTitle()
             updateStatusBar()
+            refreshSyntaxHighlighting()
             notifyStateChanged()
         } catch {
             showError("Could not open the file.", detail: error.localizedDescription)
@@ -116,6 +119,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         textView.scrollRangeToVisible(NSRange(location: location, length: 0))
         updateTitle()
         updateStatusBar()
+        refreshSyntaxHighlighting()
     }
 
     @objc func save(_ sender: Any?) {
@@ -237,6 +241,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
             shouldRestoreInSession = true
             updateTitle()
             updateStatusBar()
+            refreshSyntaxHighlighting()
             notifyStateChanged()
         } catch {
             showError("Could not run \(command.title).", detail: error.localizedDescription)
@@ -250,6 +255,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
             shouldRestoreInSession = true
             updateTitle()
             updateStatusBar()
+            refreshSyntaxHighlighting()
             notifyStateChanged()
         } catch {
             showError("Could not format with \(formatter.name).", detail: error.localizedDescription)
@@ -294,9 +300,11 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     }
 
     func textDidChange(_ notification: Notification) {
+        guard !isApplyingSyntaxHighlighting else { return }
         shouldRestoreInSession = true
         updateTitle()
         updateStatusBar()
+        refreshSyntaxHighlighting()
         notifyStateChanged()
     }
 
@@ -342,7 +350,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         textView.delegate = self
         textView.textContainerInset = NSSize(width: 6, height: 6)
         textView.autoresizingMask = [.width]
-        textView.enabledTextCheckingTypes = NSTextCheckingResult.CheckingType.spelling.rawValue
+        textView.enabledTextCheckingTypes = 0
 
         scrollView.documentView = textView
         stack.addArrangedSubview(scrollView)
@@ -371,6 +379,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         statusBar.backgroundColor = currentTheme.statusBackgroundColor
         scrollView.backgroundColor = currentTheme.backgroundColor
         scrollView.drawsBackground = true
+        refreshSyntaxHighlighting()
     }
 
     private func write(to url: URL) {
@@ -410,6 +419,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         let size = max(6, baseFont.pointSize * CGFloat(zoomPercent) / 100)
         textView.font = NSFontManager.shared.convert(baseFont, toSize: size)
         updateStatusBar()
+        refreshSyntaxHighlighting()
     }
 
     private func makeFindPanel(showReplace: Bool) {
@@ -494,7 +504,57 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         shouldRestoreInSession = true
         updateTitle()
         updateStatusBar()
+        refreshSyntaxHighlighting()
         notifyStateChanged()
+    }
+
+    private func refreshSyntaxHighlighting() {
+        guard let textStorage = textView.textStorage else { return }
+
+        let text = textView.string
+        let nsText = text as NSString
+        let fullRange = NSRange(location: 0, length: nsText.length)
+        let selectedRange = textView.selectedRange()
+        let currentFont = textView.font ?? baseFont
+        let baseAttributes: [NSAttributedString.Key: Any] = [
+            .font: currentFont,
+            .foregroundColor: currentTheme.textColor
+        ]
+
+        isApplyingSyntaxHighlighting = true
+        textStorage.beginEditing()
+        textStorage.setAttributes(baseAttributes, range: fullRange)
+
+        if fullRange.length <= 500_000,
+           let languageID = extensionRegistry.detectLanguageDefinition(for: fileURL, text: text)?.id {
+            for token in syntaxHighlighter.tokens(in: text, languageID: languageID) where NSMaxRange(token.range) <= fullRange.length {
+                textStorage.addAttribute(.foregroundColor, value: syntaxColor(for: token.kind), range: token.range)
+            }
+        }
+
+        textStorage.endEditing()
+        isApplyingSyntaxHighlighting = false
+
+        if selectedRange.location <= fullRange.length {
+            textView.setSelectedRange(selectedRange)
+        }
+    }
+
+    private func syntaxColor(for kind: SyntaxHighlightKind) -> NSColor {
+        switch kind {
+        case .keyword:
+            return .systemBlue
+        case .stringLiteral:
+            return .systemGreen
+        case .comment:
+            return .secondaryLabelColor
+        case .numberLiteral:
+            return .systemOrange
+        case .variable:
+            return .systemPurple
+        case .directive:
+            return .systemRed
+        }
     }
 
     private func selectLine(_ lineNumber: Int) {

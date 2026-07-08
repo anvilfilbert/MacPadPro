@@ -7,6 +7,7 @@ MacPad stays small and Notepad-like. MacPad Pro is where customization and devel
 ## Pro Capabilities
 
 - Built-in language recognition in the status bar for common code and markup files
+- Built-in syntax coloring for PHP and C-family files, including comments, strings, keywords, numbers, PHP variables, and PHP open tags
 - Built-in text commands:
   - Trim trailing whitespace
   - Sort lines
@@ -25,6 +26,7 @@ Available downloadable extensions:
 
 Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
 The registry currently owns built-in document browsers, themes, language definitions, text commands, and code formatters.
+Language definitions also drive editor syntax coloring so a recognized PHP, C, C++, JavaScript, TypeScript, Java, CSS, or Objective-C++ file gets code-aware colors while remaining a plain-text document on disk.
 
 Downloadable extensions are represented through `ExtensionCatalog`.
 Each extension has a unique id, description, version, type, and download URL so users can download and install extensions one by one as `.macpadproext` packages.
