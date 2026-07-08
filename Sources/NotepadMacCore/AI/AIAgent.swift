@@ -122,6 +122,20 @@ public struct AITextResult: Sendable, Equatable {
     }
 }
 
+public enum AIAgentClientError: LocalizedError, Equatable {
+    case agentError(statusCode: Int, message: String)
+    case unexpectedResponse(statusCode: Int, body: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case let .agentError(statusCode, message):
+            "AI agent returned HTTP \(statusCode) with error: \(message)"
+        case let .unexpectedResponse(statusCode, body):
+            "Unexpected AI agent response from HTTP \(statusCode). \(body)"
+        }
+    }
+}
+
 public struct AITextPromptBuilder: Sendable {
     public init() {}
 
@@ -192,9 +206,44 @@ public struct AIAgentClient: Sendable {
 
     public func complete(prompt: String) async throws -> AITextResult {
         let request = try makeURLRequest(prompt: prompt)
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(OpenAICompatibleChatResponse.self, from: data)
-        return AITextResult(text: response.choices.first?.message.content ?? "")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 200
+        return try decodeResponse(data: data, statusCode: statusCode)
+    }
+
+    public func decodeResponse(data: Data, statusCode: Int) throws -> AITextResult {
+        if let errorMessage = decodeAgentErrorMessage(from: data) {
+            throw AIAgentClientError.agentError(statusCode: statusCode, message: errorMessage)
+        }
+
+        guard (200..<300).contains(statusCode) else {
+            throw AIAgentClientError.unexpectedResponse(statusCode: statusCode, body: responsePreview(from: data))
+        }
+
+        guard let response = try? JSONDecoder().decode(OpenAICompatibleChatResponse.self, from: data),
+              let content = response.choices.first?.message.content else {
+            throw AIAgentClientError.unexpectedResponse(statusCode: statusCode, body: responsePreview(from: data))
+        }
+
+        return AITextResult(text: content)
+    }
+
+    private func decodeAgentErrorMessage(from data: Data) -> String? {
+        if let objectError = try? JSONDecoder().decode(OpenAICompatibleErrorResponse.self, from: data) {
+            return objectError.error.message
+        }
+        if let stringError = try? JSONDecoder().decode(OllamaStringErrorResponse.self, from: data) {
+            return stringError.error
+        }
+        return nil
+    }
+
+    private func responsePreview(from data: Data) -> String {
+        let body = String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? "<non-text response>"
+        guard !body.isEmpty else { return "<empty response>" }
+        return String(body.prefix(500))
     }
 }
 
@@ -214,4 +263,16 @@ private struct OpenAICompatibleChatResponse: Codable {
     struct Choice: Codable {
         let message: OpenAICompatibleMessage
     }
+}
+
+private struct OpenAICompatibleErrorResponse: Codable {
+    let error: ErrorDetail
+
+    struct ErrorDetail: Codable {
+        let message: String
+    }
+}
+
+private struct OllamaStringErrorResponse: Codable {
+    let error: String
 }

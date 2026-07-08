@@ -88,4 +88,55 @@ final class AIAgentTests: XCTestCase {
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
         XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
     }
+
+    func testClientReportsAgentErrorMessageFromOpenAICompatibleErrorObject() throws {
+        let data = """
+        {
+          "error": {
+            "message": "model 'missing-model' not found"
+          }
+        }
+        """.data(using: .utf8)!
+
+        XCTAssertThrowsError(try client().decodeResponse(data: data, statusCode: 404)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("HTTP 404"))
+            XCTAssertTrue(error.localizedDescription.contains("model 'missing-model' not found"))
+        }
+    }
+
+    func testClientReportsAgentErrorMessageFromOllamaStringError() throws {
+        let data = """
+        {
+          "error": "model is required"
+        }
+        """.data(using: .utf8)!
+
+        XCTAssertThrowsError(try client().decodeResponse(data: data, statusCode: 400)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("HTTP 400"))
+            XCTAssertTrue(error.localizedDescription.contains("model is required"))
+        }
+    }
+
+    func testClientReportsUnexpectedResponseInsteadOfDecoderMissingData() throws {
+        let data = """
+        {
+          "done": true
+        }
+        """.data(using: .utf8)!
+
+        XCTAssertThrowsError(try client().decodeResponse(data: data, statusCode: 200)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("HTTP 200"))
+            XCTAssertTrue(error.localizedDescription.contains("Unexpected AI agent response"))
+            XCTAssertFalse(error.localizedDescription.contains("missing"))
+        }
+    }
+
+    private func client() -> AIAgentClient {
+        AIAgentClient(configuration: AIAgentConfiguration(
+            endpointURL: URL(string: "http://localhost:11434/v1/chat/completions")!,
+            modelName: "local-model",
+            apiToken: nil,
+            responseMode: .openAICompatibleJSON
+        ))
+    }
 }
