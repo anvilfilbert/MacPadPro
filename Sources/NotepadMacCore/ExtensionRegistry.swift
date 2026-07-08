@@ -50,6 +50,12 @@ public struct DocumentBrowserExtension: Sendable {
     public let isClosable: Bool
 }
 
+public struct ClipboardExtension: Sendable {
+    public let id: String
+    public let title: String
+    public let slotCount: Int
+}
+
 public struct DocumentBrowserItem: Sendable, Equatable {
     public let id: String
     public let title: String
@@ -68,6 +74,7 @@ public enum ExtensionKind: String, Codable, Sendable {
     case language
     case formatter
     case textCommand
+    case clipboard
 }
 
 public struct DownloadableExtension: Codable, Sendable, Equatable {
@@ -284,6 +291,7 @@ public struct ExtensionRegistry: Sendable {
     public let textCommands: [TextCommand]
     public let formatters: [any CodeFormatter]
     public let documentBrowsers: [DocumentBrowserExtension]
+    public let clipboards: [ClipboardExtension]
 
     public static let `default` = loaded(installedExtensions: .bundledDefault)
 
@@ -295,13 +303,15 @@ public struct ExtensionRegistry: Sendable {
         let textCommands = BuiltInExtensions.coreTextCommands
             + (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.textCommands : [])
         let documentBrowsers = installedExtensions.isActive(OpenDocumentsExtensionPackage.id) ? OpenDocumentsExtensionPackage.documentBrowsers : []
+        let clipboards = installedExtensions.isActive(ClipboardSlotsExtensionPackage.id) ? ClipboardSlotsExtensionPackage.clipboards : []
 
         return ExtensionRegistry(
             themes: themes,
             languages: BuiltInExtensions.languages,
             textCommands: textCommands,
             formatters: formatters,
-            documentBrowsers: documentBrowsers
+            documentBrowsers: documentBrowsers,
+            clipboards: clipboards
         )
     }
 
@@ -428,6 +438,7 @@ private enum BuiltInExtensions {
         OpenDocumentsExtensionPackage.catalogEntry,
         JSONFormatterExtensionPackage.catalogEntry,
         CFamilyFormatterExtensionPackage.catalogEntry,
+        ClipboardSlotsExtensionPackage.catalogEntry,
         ProThemesExtensionPackage.catalogEntry
     ]
 }

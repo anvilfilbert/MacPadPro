@@ -18,6 +18,7 @@ Available downloadable extensions:
 
 - Document Browser: detachable, resizable, and closable open-document browser
 - Pro Themes: Night, Paper, and Terminal
+- Clipboard Slots: save and reuse text clipboard content across 10 slots
 - Formatter extensions:
   - Format As JSON
   - Format C/PHP/C++ brace-style code
@@ -68,6 +69,7 @@ Current extension packages:
 - `Extensions/open-documents/OpenDocumentsExtensionPackage.swift`
 - `Extensions/json-formatter/JSONFormatterExtensionPackage.swift`
 - `Extensions/c-family-formatter/CFamilyFormatterExtensionPackage.swift`
+- `Extensions/clipboard-slots/ClipboardSlotsExtensionPackage.swift`
 - `Extensions/pro-themes/ProThemesExtensionPackage.swift`
 
 ## Build

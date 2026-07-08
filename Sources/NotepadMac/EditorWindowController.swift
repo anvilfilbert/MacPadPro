@@ -262,6 +262,15 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         }
     }
 
+    func insertText(_ text: String) {
+        textView.insertText(text, replacementRange: textView.selectedRange())
+        shouldRestoreInSession = true
+        updateTitle()
+        updateStatusBar()
+        refreshSyntaxHighlighting()
+        notifyStateChanged()
+    }
+
     func confirmDiscardIfNeeded() -> Bool {
         guard hasUnsavedChanges else { return true }
 

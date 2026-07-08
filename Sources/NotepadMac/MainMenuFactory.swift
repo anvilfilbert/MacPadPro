@@ -62,6 +62,46 @@ enum MainMenuFactory {
             extensionsMenu.addItem(.separator())
         }
 
+        for clipboard in extensionRegistry.clipboards {
+            let clipboardMenu = NSMenu(title: clipboard.title)
+            let saveMenu = NSMenu(title: "Save Current Clipboard")
+            let copyMenu = NSMenu(title: "Copy Saved Slot")
+            let pasteMenu = NSMenu(title: "Paste Saved Slot")
+
+            for slot in 1...clipboard.slotCount {
+                let saveItem = addItem("Slot \(slot)", to: saveMenu, action: #selector(AppDelegate.saveClipboardSlot(_:)), target: target)
+                saveItem.tag = slot
+
+                let copyItem = addItem("Slot \(slot)", to: copyMenu, action: #selector(AppDelegate.copyClipboardSlot(_:)), target: target)
+                copyItem.tag = slot
+
+                let pasteItem = addItem("Slot \(slot)", to: pasteMenu, action: #selector(AppDelegate.pasteClipboardSlot(_:)), target: target)
+                pasteItem.tag = slot
+            }
+
+            let saveRoot = NSMenuItem(title: "Save Current Clipboard", action: nil, keyEquivalent: "")
+            saveRoot.submenu = saveMenu
+            clipboardMenu.addItem(saveRoot)
+
+            let copyRoot = NSMenuItem(title: "Copy Saved Slot", action: nil, keyEquivalent: "")
+            copyRoot.submenu = copyMenu
+            clipboardMenu.addItem(copyRoot)
+
+            let pasteRoot = NSMenuItem(title: "Paste Saved Slot", action: nil, keyEquivalent: "")
+            pasteRoot.submenu = pasteMenu
+            clipboardMenu.addItem(pasteRoot)
+
+            clipboardMenu.addItem(.separator())
+            addItem("Clear All Slots", to: clipboardMenu, action: #selector(AppDelegate.clearClipboardSlots(_:)), target: target)
+
+            let clipboardRoot = NSMenuItem(title: clipboard.title, action: nil, keyEquivalent: "")
+            clipboardRoot.submenu = clipboardMenu
+            extensionsMenu.addItem(clipboardRoot)
+        }
+        if !extensionRegistry.clipboards.isEmpty {
+            extensionsMenu.addItem(.separator())
+        }
+
         let themesMenu = NSMenu(title: "Themes")
         for (index, theme) in extensionRegistry.themes.enumerated() {
             let item = addItem(theme.name, to: themesMenu, action: #selector(AppDelegate.applyTheme(_:)), target: target)

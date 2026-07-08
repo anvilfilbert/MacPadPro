@@ -31,6 +31,14 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertTrue(browser.isClosable)
     }
 
+    func testClipboardSlotsExtensionDeclaresTenSavePlaces() throws {
+        let registry = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["clipboard-slots"]))
+        let clipboard = try XCTUnwrap(registry.clipboards.first { $0.id == "clipboard-slots" })
+
+        XCTAssertEqual(clipboard.title, "Clipboard Slots")
+        XCTAssertEqual(clipboard.slotCount, 10)
+    }
+
     func testExtensionCatalogDecodesSeparateDownloadableExtensions() throws {
         let data = """
         {
@@ -69,6 +77,7 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertTrue(catalog.extensions.contains { $0.id == "open-documents" && $0.kind == .documentBrowser })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "json-formatter" && $0.kind == .formatter })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "c-family-formatter" && $0.kind == .formatter })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "clipboard-slots" && $0.kind == .clipboard })
         XCTAssertEqual(Set(catalog.extensions.map(\.id)).count, catalog.extensions.count)
     }
 
@@ -91,6 +100,7 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(catalog.search(matching: "php").map(\.id), ["c-family-formatter"])
         XCTAssertEqual(catalog.search(matching: "c++").map(\.id), ["c-family-formatter"])
         XCTAssertEqual(catalog.search(matching: "detached").map(\.id), ["open-documents"])
+        XCTAssertEqual(catalog.search(matching: "clipboard").map(\.id), ["clipboard-slots"])
         XCTAssertEqual(catalog.search(matching: "theme").map(\.id), ["pro-themes"])
         XCTAssertEqual(catalog.search(matching: "OPEN").map(\.id), ["open-documents"])
         XCTAssertEqual(catalog.search(matching: "").map(\.id), catalog.extensions.map(\.id))
@@ -360,6 +370,10 @@ final class ExtensionRegistryTests: XCTestCase {
             catalog.extension(withID: "c-family-formatter")?.description,
             "Format PHP, C, C++, Java, JavaScript, TypeScript, and CSS brace-style code."
         )
+        XCTAssertEqual(
+            catalog.extension(withID: "clipboard-slots")?.description,
+            "Save and reuse text clipboard content across 10 named slots."
+        )
     }
 
     func testEachDownloadableExtensionHasOwnSourceDirectory() throws {
@@ -448,6 +462,24 @@ final class ExtensionRegistryTests: XCTestCase {
 
         XCTAssertTrue(registry.documentBrowsers.isEmpty)
         XCTAssertTrue(installed.isInstalled("open-documents"))
+    }
+
+    func testRegistryLoadsClipboardSlotsOnlyWhenInstalled() {
+        let withoutClipboard = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: []))
+        let withClipboard = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["clipboard-slots"]))
+
+        XCTAssertTrue(withoutClipboard.clipboards.isEmpty)
+        XCTAssertEqual(withClipboard.clipboards.first?.id, "clipboard-slots")
+    }
+
+    func testRegistryDoesNotLoadDeactivatedClipboardSlots() {
+        var installed = InstalledExtensions(installedIDs: ["clipboard-slots"])
+        installed.deactivate("clipboard-slots")
+
+        let registry = ExtensionRegistry.loaded(installedExtensions: installed)
+
+        XCTAssertTrue(registry.clipboards.isEmpty)
+        XCTAssertTrue(installed.isInstalled("clipboard-slots"))
     }
 
     func testRegistryLoadsJsonFormatterOnlyWhenInstalled() {

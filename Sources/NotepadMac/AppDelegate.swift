@@ -5,10 +5,12 @@ import NotepadMacCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let sessionDefaultsKey = "MacPadPro.SessionState.v1"
     private let installedExtensionsDefaultsKey = "MacPadPro.InstalledExtensions.v1"
+    private let clipboardSlotsDefaultsKey = "MacPadPro.ClipboardSlots.v1"
     private var extensionCatalog = ExtensionCatalog.default
     private let extensionCatalogLoader = ExtensionRepositoryCatalogLoader()
     private let extensionPackageDownloader = ExtensionPackageDownloader()
     private var installedExtensions = InstalledExtensions.bundledDefault
+    private var clipboardSlots = ClipboardSlotStore(slotCount: 10)
     private var windows: [EditorWindowController] = []
     private var documentBrowserController: DocumentBrowserWindowController?
     private var extensionManagerController: ExtensionManagerWindowController?
@@ -21,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
         installedExtensions = loadInstalledExtensions()
+        clipboardSlots = loadClipboardSlots()
         rebuildMainMenu()
         if !restorePreviousSession() {
             openNewDocument(nil)
@@ -145,6 +148,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func runCodeFormatter(_ sender: NSMenuItem) {
         guard let formatterID = sender.representedObject as? String else { return }
         keyWindowController?.runCodeFormatter(id: formatterID)
+    }
+    @objc func saveClipboardSlot(_ sender: NSMenuItem) {
+        guard extensionRegistry.clipboards.isEmpty == false,
+              let clipboardText = NSPasteboard.general.string(forType: .string) else {
+            NSSound.beep()
+            return
+        }
+
+        clipboardSlots.save(clipboardText, to: sender.tag)
+        saveClipboardSlots()
+    }
+    @objc func copyClipboardSlot(_ sender: NSMenuItem) {
+        guard extensionRegistry.clipboards.isEmpty == false,
+              let clipboardText = clipboardSlots.content(in: sender.tag) else {
+            NSSound.beep()
+            return
+        }
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(clipboardText, forType: .string)
+    }
+    @objc func pasteClipboardSlot(_ sender: NSMenuItem) {
+        guard extensionRegistry.clipboards.isEmpty == false,
+              let clipboardText = clipboardSlots.content(in: sender.tag) else {
+            NSSound.beep()
+            return
+        }
+
+        keyWindowController?.insertText(clipboardText)
+    }
+    @objc func clearClipboardSlots(_ sender: Any?) {
+        guard extensionRegistry.clipboards.isEmpty == false else { return }
+        clipboardSlots.clearAll()
+        saveClipboardSlots()
     }
     @objc func showExtensionManager(_ sender: Any?) {
         let controller = extensionManagerController ?? ExtensionManagerWindowController(
@@ -290,6 +327,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func saveInstalledExtensions() {
         if let data = try? JSONEncoder().encode(installedExtensions) {
             UserDefaults.standard.set(data, forKey: installedExtensionsDefaultsKey)
+        }
+    }
+
+    private func loadClipboardSlots() -> ClipboardSlotStore {
+        guard let data = UserDefaults.standard.data(forKey: clipboardSlotsDefaultsKey),
+              let store = try? JSONDecoder().decode(ClipboardSlotStore.self, from: data) else {
+            return ClipboardSlotStore(slotCount: 10)
+        }
+        return store
+    }
+
+    private func saveClipboardSlots() {
+        if let data = try? JSONEncoder().encode(clipboardSlots) {
+            UserDefaults.standard.set(data, forKey: clipboardSlotsDefaultsKey)
         }
     }
 

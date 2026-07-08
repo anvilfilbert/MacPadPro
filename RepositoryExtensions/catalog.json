@@ -25,6 +25,14 @@
       "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/c-family-formatter/c-family-formatter.macpadproext"
     },
     {
+      "id": "clipboard-slots",
+      "title": "Clipboard Slots",
+      "description": "Save and reuse text clipboard content across 10 named slots.",
+      "version": "1.0.0",
+      "kind": "clipboard",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/clipboard-slots/clipboard-slots.macpadproext"
+    },
+    {
       "id": "pro-themes",
       "title": "Pro Themes",
       "description": "Add Night, Paper, and Terminal editor themes.",

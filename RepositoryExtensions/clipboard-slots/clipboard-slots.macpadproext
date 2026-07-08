@@ -1,0 +1,7 @@
+{
+  "id": "clipboard-slots",
+  "title": "Clipboard Slots",
+  "description": "Save and reuse text clipboard content across 10 named slots.",
+  "version": "1.0.0",
+  "kind": "clipboard"
+}
