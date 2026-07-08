@@ -150,6 +150,7 @@ private extension ExtensionPackageManifest {
     func validate(matches extensionItem: DownloadableExtension) throws {
         guard id == extensionItem.id,
               title == extensionItem.title,
+              description == extensionItem.description,
               version == extensionItem.version,
               kind == extensionItem.kind else {
             throw ExtensionPackageDownloadError.packageDoesNotMatchCatalog(

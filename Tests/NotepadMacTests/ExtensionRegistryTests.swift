@@ -268,6 +268,37 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertThrowsError(try store.validateInstalledPackage(for: extensionItem))
     }
 
+    func testExtensionPackageStoreRejectsMismatchedDescription() throws {
+        let tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: tempDirectory)
+        }
+
+        let extensionItem = DownloadableExtension(
+            id: "sample-extension",
+            title: "Sample",
+            description: "Sample extension.",
+            version: "1.0.0",
+            kind: .formatter,
+            downloadURL: tempDirectory.appendingPathComponent("source.macpadproext")
+        )
+        let store = ExtensionPackageStore(directory: tempDirectory)
+        try Data("""
+        {
+          "id": "sample-extension",
+          "title": "Sample",
+          "description": "Different description.",
+          "version": "1.0.0",
+          "kind": "formatter"
+        }
+        """.utf8).write(to: store.packageURL(for: extensionItem.id))
+
+        XCTAssertThrowsError(try store.validateInstalledPackage(for: extensionItem))
+        XCTAssertFalse(store.hasValidatedPackage(for: extensionItem))
+    }
+
     func testExtensionPackageStoreReportsOnlyValidatedPackagesAsLoadable() throws {
         let tempDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
