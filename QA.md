@@ -34,6 +34,7 @@ Run this checklist before publishing a release.
 - Refreshing the Extension Manager catalog loads `RepositoryExtensions/catalog.json` from the MacPadPro GitHub repo.
 - Searching in the Extension Manager filters by extension name, id, description, and type.
 - Downloading an extension saves its `.macpadproext` package locally and loads that extension.
+- Downloaded `.macpadproext` package metadata must match the selected catalog entry before the extension is loaded.
 - Loading, activating, deactivating, or deleting an extension updates the Extensions menu without restarting the app.
 - Deactivating an extension hides its menu items without deleting its installed state.
 - Open editor windows use the current active extension state after loading, activating, deactivating, or deleting extensions.

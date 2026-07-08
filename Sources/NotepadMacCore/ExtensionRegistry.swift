@@ -88,6 +88,33 @@ public struct DownloadableExtension: Codable, Sendable, Equatable {
     }
 }
 
+public struct ExtensionPackageManifest: Codable, Sendable, Equatable {
+    public let id: String
+    public let title: String
+    public let description: String
+    public let version: String
+    public let kind: ExtensionKind
+
+    public init(id: String, title: String, description: String, version: String, kind: ExtensionKind) {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.version = version
+        self.kind = kind
+    }
+}
+
+public enum ExtensionPackageDownloadError: LocalizedError, Equatable {
+    case packageDoesNotMatchCatalog(expectedID: String, actualID: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case let .packageDoesNotMatchCatalog(expectedID, actualID):
+            "Downloaded package id '\(actualID)' does not match catalog extension id '\(expectedID)'."
+        }
+    }
+}
+
 public struct ExtensionCatalog: Codable, Sendable, Equatable {
     public let extensions: [DownloadableExtension]
 
@@ -136,8 +163,19 @@ public struct ExtensionPackageDownloader {
 
     @discardableResult
     public func download(_ extensionItem: DownloadableExtension, into directory: URL) throws -> URL {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let packageData = try Data(contentsOf: extensionItem.downloadURL)
+        let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
+        guard manifest.id == extensionItem.id,
+              manifest.title == extensionItem.title,
+              manifest.version == extensionItem.version,
+              manifest.kind == extensionItem.kind else {
+            throw ExtensionPackageDownloadError.packageDoesNotMatchCatalog(
+                expectedID: extensionItem.id,
+                actualID: manifest.id
+            )
+        }
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let destinationURL = directory.appendingPathComponent("\(extensionItem.id).macpadproext")
         try packageData.write(to: destinationURL, options: .atomic)
         return destinationURL

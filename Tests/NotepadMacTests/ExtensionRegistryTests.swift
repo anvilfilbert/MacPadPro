@@ -132,7 +132,15 @@ final class ExtensionRegistryTests: XCTestCase {
         let sourceURL = tempDirectory.appendingPathComponent("source.macpadproext")
         let destinationDirectory = tempDirectory.appendingPathComponent("Installed", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
-        try Data("package".utf8).write(to: sourceURL)
+        try Data("""
+        {
+          "id": "sample-extension",
+          "title": "Sample",
+          "description": "Sample extension.",
+          "version": "1.0.0",
+          "kind": "formatter"
+        }
+        """.utf8).write(to: sourceURL)
         defer {
             try? FileManager.default.removeItem(at: tempDirectory)
         }
@@ -149,7 +157,41 @@ final class ExtensionRegistryTests: XCTestCase {
         let savedURL = try ExtensionPackageDownloader().download(extensionItem, into: destinationDirectory)
 
         XCTAssertEqual(savedURL.lastPathComponent, "sample-extension.macpadproext")
-        XCTAssertEqual(try Data(contentsOf: savedURL), Data("package".utf8))
+        let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: Data(contentsOf: savedURL))
+        XCTAssertEqual(manifest.id, "sample-extension")
+        XCTAssertEqual(manifest.description, "Sample extension.")
+    }
+
+    func testExtensionPackageDownloaderRejectsMismatchedPackageID() throws {
+        let tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let sourceURL = tempDirectory.appendingPathComponent("source.macpadproext")
+        let destinationDirectory = tempDirectory.appendingPathComponent("Installed", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+        try Data("""
+        {
+          "id": "other-extension",
+          "title": "Other",
+          "description": "Wrong package.",
+          "version": "1.0.0",
+          "kind": "formatter"
+        }
+        """.utf8).write(to: sourceURL)
+        defer {
+            try? FileManager.default.removeItem(at: tempDirectory)
+        }
+
+        let extensionItem = DownloadableExtension(
+            id: "sample-extension",
+            title: "Sample",
+            description: "Sample extension.",
+            version: "1.0.0",
+            kind: .formatter,
+            downloadURL: sourceURL
+        )
+
+        XCTAssertThrowsError(try ExtensionPackageDownloader().download(extensionItem, into: destinationDirectory))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destinationDirectory.appendingPathComponent("sample-extension.macpadproext").path))
     }
 
     func testExtensionCatalogIncludesDescriptionsForExtensionManager() {

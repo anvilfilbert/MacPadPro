@@ -41,6 +41,7 @@ Use `Extensions > Manage Extensions...` to refresh the MacPadPro GitHub catalog,
 Installed and deactivated extension ids are stored locally and control which extension menu items appear.
 Open editor windows resolve the current active extension state when applying themes, running formatters, and detecting languages.
 Downloaded `.macpadproext` packages are stored in the user's Application Support folder under `MacPad Pro/Extensions`.
+Downloaded packages are decoded and validated against the selected catalog entry before they are saved and loaded.
 
 Each downloadable extension owns its own source directory under:
 
