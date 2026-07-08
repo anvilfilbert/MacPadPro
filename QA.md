@@ -28,8 +28,14 @@ Run this checklist before publishing a release.
 ## Extensions
 
 - Downloadable extension catalog entries are one extension per package URL.
-- `Extensions > Manage Extensions...` opens a resizable extension manager with Load and Delete controls.
-- Loading or deleting an extension updates the Extensions menu without restarting the app.
+- Each downloadable extension has its own source directory under `Sources/NotepadMacCore/Extensions/<extension-id>/`.
+- Each downloadable extension has its own repository package directory under `RepositoryExtensions/<extension-id>/`.
+- `Extensions > Manage Extensions...` opens a resizable extension manager with extension descriptions.
+- Refreshing the Extension Manager catalog loads `RepositoryExtensions/catalog.json` from the MacPadPro GitHub repo.
+- Searching in the Extension Manager filters by extension name, id, description, and type.
+- Downloading an extension saves its `.macpadproext` package locally and loads that extension.
+- Loading, activating, deactivating, or deleting an extension updates the Extensions menu without restarting the app.
+- Deactivating an extension hides its menu items without deleting its installed state.
 - `Extensions > Document Browser` opens a detached, resizable, and closable window listing open documents.
 - Double-clicking a document in the Document Browser brings that document window forward.
 - Themes can switch between System, Night, Paper, and Terminal.

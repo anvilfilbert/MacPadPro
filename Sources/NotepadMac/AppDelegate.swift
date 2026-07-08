@@ -5,7 +5,9 @@ import NotepadMacCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let sessionDefaultsKey = "MacPadPro.SessionState.v1"
     private let installedExtensionsDefaultsKey = "MacPadPro.InstalledExtensions.v1"
-    private let extensionCatalog = ExtensionCatalog.default
+    private var extensionCatalog = ExtensionCatalog.default
+    private let extensionCatalogLoader = ExtensionRepositoryCatalogLoader()
+    private let extensionPackageDownloader = ExtensionPackageDownloader()
     private var installedExtensions = InstalledExtensions.bundledDefault
     private var windows: [EditorWindowController] = []
     private var documentBrowserController: DocumentBrowserWindowController?
@@ -146,7 +148,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = extensionManagerController ?? ExtensionManagerWindowController(
             catalog: extensionCatalog,
             installedProvider: { [weak self] in self?.installedExtensions ?? .bundledDefault },
+            refreshCatalogFromRepository: { [weak self] in
+                guard let self else { return .default }
+                return try self.refreshExtensionCatalogFromRepository()
+            },
+            downloadExtension: { [weak self] extensionItem in
+                guard let self else { return }
+                try self.downloadExtension(extensionItem)
+            },
             loadExtension: { [weak self] id in self?.loadExtension(id: id) },
+            activateExtension: { [weak self] id in self?.activateExtension(id: id) },
+            deactivateExtension: { [weak self] id in self?.deactivateExtension(id: id) },
             deleteExtension: { [weak self] id in self?.deleteExtension(id: id) }
         )
         controller.onClose = { [weak self] in
@@ -276,20 +288,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func refreshExtensionCatalogFromRepository() throws -> ExtensionCatalog {
+        let catalog = try extensionCatalogLoader.loadCatalog()
+        extensionCatalog = catalog
+        return catalog
+    }
+
+    private func downloadExtension(_ extensionItem: DownloadableExtension) throws {
+        try extensionPackageDownloader.download(extensionItem, into: extensionPackagesDirectory)
+        installedExtensions.load(extensionItem.id)
+        saveInstalledExtensions()
+        reloadExtensions()
+    }
+
+    private var extensionPackagesDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("MacPad Pro", isDirectory: true)
+            .appendingPathComponent("Extensions", isDirectory: true)
+    }
+
     private func loadExtension(id: String) {
         installedExtensions.load(id)
         saveInstalledExtensions()
         reloadExtensions()
     }
 
+    private func activateExtension(id: String) {
+        installedExtensions.activate(id)
+        saveInstalledExtensions()
+        reloadExtensions()
+    }
+
+    private func deactivateExtension(id: String) {
+        installedExtensions.deactivate(id)
+        saveInstalledExtensions()
+        reloadExtensions()
+    }
+
     private func deleteExtension(id: String) {
         installedExtensions.delete(id)
+        let packageURL = extensionPackagesDirectory.appendingPathComponent("\(id).macpadproext")
+        try? FileManager.default.removeItem(at: packageURL)
         saveInstalledExtensions()
         reloadExtensions()
     }
 
     private func reloadExtensions() {
-        if !installedExtensions.isInstalled("open-documents") {
+        if !installedExtensions.isActive("open-documents") {
             documentBrowserController?.close()
             documentBrowserController = nil
         }

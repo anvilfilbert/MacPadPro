@@ -73,13 +73,15 @@ public enum ExtensionKind: String, Codable, Sendable {
 public struct DownloadableExtension: Codable, Sendable, Equatable {
     public let id: String
     public let title: String
+    public let description: String
     public let version: String
     public let kind: ExtensionKind
     public let downloadURL: URL
 
-    public init(id: String, title: String, version: String, kind: ExtensionKind, downloadURL: URL) {
+    public init(id: String, title: String, description: String, version: String, kind: ExtensionKind, downloadURL: URL) {
         self.id = id
         self.title = title
+        self.description = description
         self.version = version
         self.kind = kind
         self.downloadURL = downloadURL
@@ -98,27 +100,105 @@ public struct ExtensionCatalog: Codable, Sendable, Equatable {
     public func `extension`(withID id: String) -> DownloadableExtension? {
         extensions.first { $0.id == id }
     }
+
+    public func search(matching query: String) -> [DownloadableExtension] {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalizedQuery.isEmpty else { return extensions }
+
+        return extensions.filter { extensionItem in
+            [
+                extensionItem.id,
+                extensionItem.title,
+                extensionItem.description,
+                extensionItem.kind.rawValue
+            ].contains { $0.lowercased().contains(normalizedQuery) }
+        }
+    }
+}
+
+public enum ExtensionRepository {
+    public static let macPadProGitHubCatalogURL = URL(
+        string: "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/catalog.json"
+    )!
+}
+
+public struct ExtensionRepositoryCatalogLoader {
+    public init() {}
+
+    public func loadCatalog(from url: URL = ExtensionRepository.macPadProGitHubCatalogURL) throws -> ExtensionCatalog {
+        let catalogData = try Data(contentsOf: url)
+        return try JSONDecoder().decode(ExtensionCatalog.self, from: catalogData)
+    }
+}
+
+public struct ExtensionPackageDownloader {
+    public init() {}
+
+    @discardableResult
+    public func download(_ extensionItem: DownloadableExtension, into directory: URL) throws -> URL {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let packageData = try Data(contentsOf: extensionItem.downloadURL)
+        let destinationURL = directory.appendingPathComponent("\(extensionItem.id).macpadproext")
+        try packageData.write(to: destinationURL, options: .atomic)
+        return destinationURL
+    }
 }
 
 public struct InstalledExtensions: Codable, Sendable, Equatable {
     public private(set) var installedIDs: Set<String>
+    public private(set) var deactivatedIDs: Set<String>
 
     public static let bundledDefault = InstalledExtensions(installedIDs: BuiltInExtensions.defaultInstalledExtensionIDs)
 
-    public init(installedIDs: Set<String>) {
+    private enum CodingKeys: String, CodingKey {
+        case installedIDs
+        case deactivatedIDs
+    }
+
+    public init(installedIDs: Set<String>, deactivatedIDs: Set<String> = []) {
         self.installedIDs = installedIDs
+        self.deactivatedIDs = deactivatedIDs.intersection(installedIDs)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let installedIDs = try container.decode(Set<String>.self, forKey: .installedIDs)
+        let deactivatedIDs = try container.decodeIfPresent(Set<String>.self, forKey: .deactivatedIDs) ?? []
+        self.init(installedIDs: installedIDs, deactivatedIDs: deactivatedIDs)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(installedIDs, forKey: .installedIDs)
+        try container.encode(deactivatedIDs, forKey: .deactivatedIDs)
     }
 
     public func isInstalled(_ id: String) -> Bool {
         installedIDs.contains(id)
     }
 
+    public func isActive(_ id: String) -> Bool {
+        installedIDs.contains(id) && !deactivatedIDs.contains(id)
+    }
+
     public mutating func load(_ id: String) {
         installedIDs.insert(id)
+        deactivatedIDs.remove(id)
+    }
+
+    public mutating func activate(_ id: String) {
+        guard installedIDs.contains(id) else { return }
+        deactivatedIDs.remove(id)
+    }
+
+    public mutating func deactivate(_ id: String) {
+        guard installedIDs.contains(id) else { return }
+        deactivatedIDs.insert(id)
     }
 
     public mutating func delete(_ id: String) {
         installedIDs.remove(id)
+        deactivatedIDs.remove(id)
     }
 }
 
@@ -133,11 +213,11 @@ public struct ExtensionRegistry: Sendable {
 
     public static func loaded(installedExtensions: InstalledExtensions) -> ExtensionRegistry {
         let themes = BuiltInExtensions.systemThemes
-            + (installedExtensions.isInstalled("pro-themes") ? BuiltInExtensions.proThemes : [])
-        let formatters = installedExtensions.isInstalled("json-formatter") ? BuiltInExtensions.formatters : []
+            + (installedExtensions.isActive(ProThemesExtensionPackage.id) ? ProThemesExtensionPackage.themes : [])
+        let formatters = installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.formatters : []
         let textCommands = BuiltInExtensions.coreTextCommands
-            + (installedExtensions.isInstalled("json-formatter") ? BuiltInExtensions.formatterTextCommands : [])
-        let documentBrowsers = installedExtensions.isInstalled("open-documents") ? BuiltInExtensions.documentBrowsers : []
+            + (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.textCommands : [])
+        let documentBrowsers = installedExtensions.isActive(OpenDocumentsExtensionPackage.id) ? OpenDocumentsExtensionPackage.documentBrowsers : []
 
         return ExtensionRegistry(
             themes: themes,
@@ -192,9 +272,9 @@ public struct ExtensionRegistry: Sendable {
 
 private enum BuiltInExtensions {
     static let defaultInstalledExtensionIDs: Set<String> = [
-        "open-documents",
-        "json-formatter",
-        "pro-themes"
+        OpenDocumentsExtensionPackage.id,
+        JSONFormatterExtensionPackage.id,
+        ProThemesExtensionPackage.id
     ]
 
     static let systemThemes: [EditorTheme] = [
@@ -208,38 +288,6 @@ private enum BuiltInExtensions {
             statusBackgroundColor: .windowBackgroundColor
         )
     ]
-
-    static let proThemes: [EditorTheme] = [
-        EditorTheme(
-            id: "night",
-            name: "Night",
-            textColor: NSColor(calibratedRed: 0.86, green: 0.88, blue: 0.90, alpha: 1),
-            backgroundColor: NSColor(calibratedRed: 0.10, green: 0.11, blue: 0.12, alpha: 1),
-            insertionPointColor: NSColor(calibratedRed: 0.39, green: 0.76, blue: 1.0, alpha: 1),
-            statusTextColor: NSColor(calibratedRed: 0.70, green: 0.73, blue: 0.76, alpha: 1),
-            statusBackgroundColor: NSColor(calibratedRed: 0.14, green: 0.15, blue: 0.16, alpha: 1)
-        ),
-        EditorTheme(
-            id: "paper",
-            name: "Paper",
-            textColor: NSColor(calibratedRed: 0.12, green: 0.12, blue: 0.10, alpha: 1),
-            backgroundColor: NSColor(calibratedRed: 0.98, green: 0.96, blue: 0.91, alpha: 1),
-            insertionPointColor: NSColor(calibratedRed: 0.15, green: 0.35, blue: 0.75, alpha: 1),
-            statusTextColor: NSColor(calibratedRed: 0.40, green: 0.38, blue: 0.32, alpha: 1),
-            statusBackgroundColor: NSColor(calibratedRed: 0.93, green: 0.90, blue: 0.83, alpha: 1)
-        ),
-        EditorTheme(
-            id: "terminal",
-            name: "Terminal",
-            textColor: NSColor(calibratedRed: 0.45, green: 1.0, blue: 0.55, alpha: 1),
-            backgroundColor: .black,
-            insertionPointColor: NSColor(calibratedRed: 0.45, green: 1.0, blue: 0.55, alpha: 1),
-            statusTextColor: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.45, alpha: 1),
-            statusBackgroundColor: NSColor(calibratedWhite: 0.06, alpha: 1)
-        )
-    ]
-
-    static let themes: [EditorTheme] = systemThemes + proThemes
 
     static let languages: [LanguageDefinition] = [
         LanguageDefinition(id: "shell", name: "Shell", fileExtensions: ["bash", "sh", "zsh"], shebangHints: ["bash", "sh", "zsh"]),
@@ -290,64 +338,9 @@ private enum BuiltInExtensions {
         }
     ]
 
-    static let formatterTextCommands: [TextCommand] = [
-        TextCommand(id: "pretty-print-json", title: "Pretty Print JSON") { text in
-            try JSONCodeFormatter().format(text)
-        }
-    ]
-
-    static let textCommands: [TextCommand] = coreTextCommands + formatterTextCommands
-
-    static let formatters: [any CodeFormatter] = [
-        JSONCodeFormatter()
-    ]
-
-    static let documentBrowsers: [DocumentBrowserExtension] = [
-        DocumentBrowserExtension(
-            id: "open-documents",
-            title: "Document Browser",
-            opensDetachedWindow: true,
-            isResizable: true,
-            isClosable: true
-        )
-    ]
-
     static let downloadableExtensions: [DownloadableExtension] = [
-        DownloadableExtension(
-            id: "open-documents",
-            title: "Document Browser",
-            version: "1.0.0",
-            kind: .documentBrowser,
-            downloadURL: URL(string: "https://github.com/anvilfilbert/MacPadPro/releases/download/extensions/open-documents.macpadproext")!
-        ),
-        DownloadableExtension(
-            id: "json-formatter",
-            title: "JSON Formatter",
-            version: "1.0.0",
-            kind: .formatter,
-            downloadURL: URL(string: "https://github.com/anvilfilbert/MacPadPro/releases/download/extensions/json-formatter.macpadproext")!
-        ),
-        DownloadableExtension(
-            id: "pro-themes",
-            title: "Pro Themes",
-            version: "1.0.0",
-            kind: .theme,
-            downloadURL: URL(string: "https://github.com/anvilfilbert/MacPadPro/releases/download/extensions/pro-themes.macpadproext")!
-        )
+        OpenDocumentsExtensionPackage.catalogEntry,
+        JSONFormatterExtensionPackage.catalogEntry,
+        ProThemesExtensionPackage.catalogEntry
     ]
-}
-
-public struct JSONCodeFormatter: CodeFormatter {
-    public let id = "json"
-    public let name = "JSON"
-    public let supportedLanguageIDs: Set<String> = ["json"]
-
-    public init() {}
-
-    public func format(_ text: String) throws -> String {
-        let data = Data(text.utf8)
-        let object = try JSONSerialization.jsonObject(with: data)
-        let prettyData = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
-        return String(data: prettyData, encoding: .utf8) ?? text
-    }
 }

@@ -22,10 +22,41 @@ Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
 The registry currently owns built-in document browsers, themes, language definitions, text commands, and code formatters.
 
 Downloadable extensions are represented through `ExtensionCatalog`.
-Each extension has a unique id, version, type, and download URL so users can download and install extensions one by one as `.macpadproext` packages.
+Each extension has a unique id, description, version, type, and download URL so users can download and install extensions one by one as `.macpadproext` packages.
 
-Use `Extensions > Manage Extensions...` to load or delete extensions one by one.
-Loaded extension ids are stored locally and control which extension menu items appear.
+MacPad Pro publishes its downloadable extension catalog from this GitHub repo at:
+
+```text
+RepositoryExtensions/catalog.json
+```
+
+The app reads the raw GitHub catalog URL:
+
+```text
+https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/catalog.json
+```
+
+Use `Extensions > Manage Extensions...` to refresh the MacPadPro GitHub catalog, search extensions by name, id, description, or type, download extension packages, load local extensions, activate/deactivate extensions without deleting them, or delete them one by one.
+Installed and deactivated extension ids are stored locally and control which extension menu items appear.
+Downloaded `.macpadproext` packages are stored in the user's Application Support folder under `MacPad Pro/Extensions`.
+
+Each downloadable extension owns its own source directory under:
+
+```text
+Sources/NotepadMacCore/Extensions/<extension-id>/
+```
+
+Each repository package also has its own directory under:
+
+```text
+RepositoryExtensions/<extension-id>/
+```
+
+Current extension packages:
+
+- `Extensions/open-documents/OpenDocumentsExtensionPackage.swift`
+- `Extensions/json-formatter/JSONFormatterExtensionPackage.swift`
+- `Extensions/pro-themes/ProThemesExtensionPackage.swift`
 
 ## Build
 

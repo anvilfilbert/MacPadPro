@@ -1,0 +1,7 @@
+{
+  "id": "open-documents",
+  "title": "Document Browser",
+  "description": "Browse open documents in a detached, resizable, closable window.",
+  "version": "1.0.0",
+  "kind": "documentBrowser"
+}

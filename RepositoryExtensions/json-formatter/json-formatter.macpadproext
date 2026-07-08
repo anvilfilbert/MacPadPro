@@ -1,0 +1,7 @@
+{
+  "id": "json-formatter",
+  "title": "JSON Formatter",
+  "description": "Format JSON documents with stable indentation and sorted keys.",
+  "version": "1.0.0",
+  "kind": "formatter"
+}

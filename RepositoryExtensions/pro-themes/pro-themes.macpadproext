@@ -1,0 +1,7 @@
+{
+  "id": "pro-themes",
+  "title": "Pro Themes",
+  "description": "Add Night, Paper, and Terminal editor themes.",
+  "version": "1.0.0",
+  "kind": "theme"
+}
