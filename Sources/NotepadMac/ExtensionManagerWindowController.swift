@@ -15,9 +15,10 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
     private var catalog: ExtensionCatalog
     private var visibleExtensions: [DownloadableExtension]
     private let installedProvider: () -> InstalledExtensions
+    private let hasLocalPackage: (DownloadableExtension) -> Bool
     private let refreshCatalogFromRepository: () throws -> ExtensionCatalog
     private let downloadExtension: (DownloadableExtension) throws -> Void
-    private let loadExtension: (String) -> Void
+    private let loadExtension: (DownloadableExtension) throws -> Void
     private let activateExtension: (String) -> Void
     private let deactivateExtension: (String) -> Void
     private let deleteExtension: (String) -> Void
@@ -34,9 +35,10 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
     init(
         catalog: ExtensionCatalog,
         installedProvider: @escaping () -> InstalledExtensions,
+        hasLocalPackage: @escaping (DownloadableExtension) -> Bool,
         refreshCatalogFromRepository: @escaping () throws -> ExtensionCatalog,
         downloadExtension: @escaping (DownloadableExtension) throws -> Void,
-        loadExtension: @escaping (String) -> Void,
+        loadExtension: @escaping (DownloadableExtension) throws -> Void,
         activateExtension: @escaping (String) -> Void,
         deactivateExtension: @escaping (String) -> Void,
         deleteExtension: @escaping (String) -> Void
@@ -44,6 +46,7 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         self.catalog = catalog
         self.visibleExtensions = catalog.extensions
         self.installedProvider = installedProvider
+        self.hasLocalPackage = hasLocalPackage
         self.refreshCatalogFromRepository = refreshCatalogFromRepository
         self.downloadExtension = downloadExtension
         self.loadExtension = loadExtension
@@ -133,8 +136,13 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
 
     @objc private func loadSelectedExtension(_ sender: Any?) {
         guard let selectedExtension else { return }
-        loadExtension(selectedExtension.id)
-        refresh()
+        do {
+            try loadExtension(selectedExtension)
+            statusLabel.stringValue = "Loaded: \(selectedExtension.title)"
+            refresh()
+        } catch {
+            showError(title: "Could Not Load Extension", message: error.localizedDescription)
+        }
     }
 
     @objc private func activateSelectedExtension(_ sender: Any?) {
@@ -266,7 +274,7 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         let isInstalled = installed.isInstalled(selectedExtension.id)
         let isActive = installed.isActive(selectedExtension.id)
         downloadButton.isEnabled = !isInstalled
-        loadButton.isEnabled = !isInstalled
+        loadButton.isEnabled = !isInstalled && hasLocalPackage(selectedExtension)
         activateButton.isEnabled = isInstalled && !isActive
         deactivateButton.isEnabled = isInstalled && isActive
         deleteButton.isEnabled = isInstalled

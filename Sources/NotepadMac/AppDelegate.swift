@@ -150,6 +150,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = extensionManagerController ?? ExtensionManagerWindowController(
             catalog: extensionCatalog,
             installedProvider: { [weak self] in self?.installedExtensions ?? .bundledDefault },
+            hasLocalPackage: { [weak self] extensionItem in
+                self?.extensionPackageStore.hasPackage(for: extensionItem.id) ?? false
+            },
             refreshCatalogFromRepository: { [weak self] in
                 guard let self else { return .default }
                 return try self.refreshExtensionCatalogFromRepository()
@@ -158,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 try self.downloadExtension(extensionItem)
             },
-            loadExtension: { [weak self] id in self?.loadExtension(id: id) },
+            loadExtension: { [weak self] extensionItem in try self?.loadExtension(extensionItem) },
             activateExtension: { [weak self] id in self?.activateExtension(id: id) },
             deactivateExtension: { [weak self] id in self?.deactivateExtension(id: id) },
             deleteExtension: { [weak self] id in self?.deleteExtension(id: id) }
@@ -309,8 +312,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .appendingPathComponent("Extensions", isDirectory: true)
     }
 
-    private func loadExtension(id: String) {
-        installedExtensions.load(id)
+    private var extensionPackageStore: ExtensionPackageStore {
+        ExtensionPackageStore(directory: extensionPackagesDirectory)
+    }
+
+    private func loadExtension(_ extensionItem: DownloadableExtension) throws {
+        try extensionPackageStore.validateInstalledPackage(for: extensionItem)
+        installedExtensions.load(extensionItem.id)
         saveInstalledExtensions()
         reloadExtensions()
     }
@@ -329,7 +337,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func deleteExtension(id: String) {
         installedExtensions.delete(id)
-        let packageURL = extensionPackagesDirectory.appendingPathComponent("\(id).macpadproext")
+        let packageURL = extensionPackageStore.packageURL(for: id)
         try? FileManager.default.removeItem(at: packageURL)
         saveInstalledExtensions()
         reloadExtensions()

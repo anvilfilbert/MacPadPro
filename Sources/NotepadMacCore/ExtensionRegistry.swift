@@ -115,6 +115,42 @@ public enum ExtensionPackageDownloadError: LocalizedError, Equatable {
     }
 }
 
+public struct ExtensionPackageStore {
+    public let directory: URL
+
+    public init(directory: URL) {
+        self.directory = directory
+    }
+
+    public func packageURL(for extensionID: String) -> URL {
+        directory.appendingPathComponent("\(extensionID).macpadproext")
+    }
+
+    public func hasPackage(for extensionID: String) -> Bool {
+        FileManager.default.fileExists(atPath: packageURL(for: extensionID).path)
+    }
+
+    public func validateInstalledPackage(for extensionItem: DownloadableExtension) throws {
+        let packageData = try Data(contentsOf: packageURL(for: extensionItem.id))
+        let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
+        try manifest.validate(matches: extensionItem)
+    }
+}
+
+private extension ExtensionPackageManifest {
+    func validate(matches extensionItem: DownloadableExtension) throws {
+        guard id == extensionItem.id,
+              title == extensionItem.title,
+              version == extensionItem.version,
+              kind == extensionItem.kind else {
+            throw ExtensionPackageDownloadError.packageDoesNotMatchCatalog(
+                expectedID: extensionItem.id,
+                actualID: id
+            )
+        }
+    }
+}
+
 public struct ExtensionCatalog: Codable, Sendable, Equatable {
     public let extensions: [DownloadableExtension]
 
@@ -165,18 +201,10 @@ public struct ExtensionPackageDownloader {
     public func download(_ extensionItem: DownloadableExtension, into directory: URL) throws -> URL {
         let packageData = try Data(contentsOf: extensionItem.downloadURL)
         let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
-        guard manifest.id == extensionItem.id,
-              manifest.title == extensionItem.title,
-              manifest.version == extensionItem.version,
-              manifest.kind == extensionItem.kind else {
-            throw ExtensionPackageDownloadError.packageDoesNotMatchCatalog(
-                expectedID: extensionItem.id,
-                actualID: manifest.id
-            )
-        }
+        try manifest.validate(matches: extensionItem)
 
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let destinationURL = directory.appendingPathComponent("\(extensionItem.id).macpadproext")
+        let destinationURL = ExtensionPackageStore(directory: directory).packageURL(for: extensionItem.id)
         try packageData.write(to: destinationURL, options: .atomic)
         return destinationURL
     }
