@@ -85,7 +85,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func makeWindowController() -> EditorWindowController {
-        let controller = EditorWindowController()
+        let controller = EditorWindowController(extensionRegistryProvider: { [weak self] in
+            self?.extensionRegistry ?? .default
+        })
         controller.onClose = { [weak self, weak controller] in
             guard let controller else { return }
             self?.windows.removeAll { $0 === controller }

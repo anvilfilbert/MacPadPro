@@ -39,6 +39,7 @@ https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensio
 
 Use `Extensions > Manage Extensions...` to refresh the MacPadPro GitHub catalog, search extensions by name, id, description, or type, download extension packages, load local extensions, activate/deactivate extensions without deleting them, or delete them one by one.
 Installed and deactivated extension ids are stored locally and control which extension menu items appear.
+Open editor windows resolve the current active extension state when applying themes, running formatters, and detecting languages.
 Downloaded `.macpadproext` packages are stored in the user's Application Support folder under `MacPad Pro/Extensions`.
 
 Each downloadable extension owns its own source directory under:

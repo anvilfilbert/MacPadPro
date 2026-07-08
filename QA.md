@@ -36,6 +36,7 @@ Run this checklist before publishing a release.
 - Downloading an extension saves its `.macpadproext` package locally and loads that extension.
 - Loading, activating, deactivating, or deleting an extension updates the Extensions menu without restarting the app.
 - Deactivating an extension hides its menu items without deleting its installed state.
+- Open editor windows use the current active extension state after loading, activating, deactivating, or deleting extensions.
 - `Extensions > Document Browser` opens a detached, resizable, and closable window listing open documents.
 - Double-clicking a document in the Document Browser brings that document window forward.
 - Themes can switch between System, Night, Paper, and Terminal.

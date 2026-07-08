@@ -21,10 +21,12 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     private var lineEnding: LineEnding = .windows
     private var baseFont: NSFont
     private var shouldRestoreInSession = true
-    private let extensionRegistry = ExtensionRegistry.default
+    private let extensionRegistryProvider: () -> ExtensionRegistry
+    private var extensionRegistry: ExtensionRegistry { extensionRegistryProvider() }
     private var currentTheme = ExtensionRegistry.default.themes[0]
 
-    init() {
+    init(extensionRegistryProvider: @escaping () -> ExtensionRegistry = { .default }) {
+        self.extensionRegistryProvider = extensionRegistryProvider
         baseFont = NSFont.monospacedSystemFont(ofSize: defaultFontSize, weight: .regular)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 820, height: 580),
