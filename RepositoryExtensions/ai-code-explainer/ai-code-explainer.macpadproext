@@ -1,0 +1,7 @@
+{
+  "id": "ai-code-explainer",
+  "title": "AI Code Explainer",
+  "description": "Explain selected code through a configured agent using filename and language context.",
+  "version": "1.0.0",
+  "kind": "aiTextTask"
+}

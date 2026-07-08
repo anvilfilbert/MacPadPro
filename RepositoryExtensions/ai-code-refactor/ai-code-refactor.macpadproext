@@ -1,0 +1,7 @@
+{
+  "id": "ai-code-refactor",
+  "title": "AI Code Refactor Assistant",
+  "description": "Suggest safer refactors for selected code through a configured agent.",
+  "version": "1.0.0",
+  "kind": "aiTextTask"
+}

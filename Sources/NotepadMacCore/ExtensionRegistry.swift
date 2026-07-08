@@ -75,6 +75,8 @@ public enum ExtensionKind: String, Codable, Sendable {
     case formatter
     case textCommand
     case clipboard
+    case aiTextTask
+    case aiSmartSearch
 }
 
 public struct DownloadableExtension: Codable, Sendable, Equatable {
@@ -292,6 +294,8 @@ public struct ExtensionRegistry: Sendable {
     public let formatters: [any CodeFormatter]
     public let documentBrowsers: [DocumentBrowserExtension]
     public let clipboards: [ClipboardExtension]
+    public let aiTextTasks: [AITextTask]
+    public let aiSmartSearches: [AISmartSearchExtension]
 
     public static let `default` = loaded(installedExtensions: .bundledDefault)
 
@@ -304,6 +308,12 @@ public struct ExtensionRegistry: Sendable {
             + (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.textCommands : [])
         let documentBrowsers = installedExtensions.isActive(OpenDocumentsExtensionPackage.id) ? OpenDocumentsExtensionPackage.documentBrowsers : []
         let clipboards = installedExtensions.isActive(ClipboardSlotsExtensionPackage.id) ? ClipboardSlotsExtensionPackage.clipboards : []
+        let aiTextTasks =
+            (installedExtensions.isActive(AISummarizerExtensionPackage.id) ? AISummarizerExtensionPackage.textTasks : [])
+            + (installedExtensions.isActive(AICodeExplainerExtensionPackage.id) ? AICodeExplainerExtensionPackage.textTasks : [])
+            + (installedExtensions.isActive(AICodeRefactorExtensionPackage.id) ? AICodeRefactorExtensionPackage.textTasks : [])
+            + (installedExtensions.isActive(AIMeetingNotesExtensionPackage.id) ? AIMeetingNotesExtensionPackage.textTasks : [])
+        let aiSmartSearches = installedExtensions.isActive(AISmartSearchExtensionPackage.id) ? AISmartSearchExtensionPackage.smartSearches : []
 
         return ExtensionRegistry(
             themes: themes,
@@ -311,7 +321,9 @@ public struct ExtensionRegistry: Sendable {
             textCommands: textCommands,
             formatters: formatters,
             documentBrowsers: documentBrowsers,
-            clipboards: clipboards
+            clipboards: clipboards,
+            aiTextTasks: aiTextTasks,
+            aiSmartSearches: aiSmartSearches
         )
     }
 
@@ -439,6 +451,11 @@ private enum BuiltInExtensions {
         JSONFormatterExtensionPackage.catalogEntry,
         CFamilyFormatterExtensionPackage.catalogEntry,
         ClipboardSlotsExtensionPackage.catalogEntry,
+        AISummarizerExtensionPackage.catalogEntry,
+        AICodeExplainerExtensionPackage.catalogEntry,
+        AICodeRefactorExtensionPackage.catalogEntry,
+        AIMeetingNotesExtensionPackage.catalogEntry,
+        AISmartSearchExtensionPackage.catalogEntry,
         ProThemesExtensionPackage.catalogEntry
     ]
 }

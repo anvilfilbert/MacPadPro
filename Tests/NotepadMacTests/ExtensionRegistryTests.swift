@@ -78,6 +78,11 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertTrue(catalog.extensions.contains { $0.id == "json-formatter" && $0.kind == .formatter })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "c-family-formatter" && $0.kind == .formatter })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "clipboard-slots" && $0.kind == .clipboard })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-summarizer" && $0.kind == .aiTextTask })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-code-explainer" && $0.kind == .aiTextTask })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-code-refactor" && $0.kind == .aiTextTask })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-meeting-notes" && $0.kind == .aiTextTask })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-smart-search" && $0.kind == .aiSmartSearch })
         XCTAssertEqual(Set(catalog.extensions.map(\.id)).count, catalog.extensions.count)
     }
 
@@ -101,8 +106,10 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(catalog.search(matching: "c++").map(\.id), ["c-family-formatter"])
         XCTAssertEqual(catalog.search(matching: "detached").map(\.id), ["open-documents"])
         XCTAssertEqual(catalog.search(matching: "clipboard").map(\.id), ["clipboard-slots"])
+        XCTAssertEqual(catalog.search(matching: "semantic").map(\.id), ["ai-smart-search"])
+        XCTAssertEqual(catalog.search(matching: "refactor").map(\.id), ["ai-code-refactor"])
         XCTAssertEqual(catalog.search(matching: "theme").map(\.id), ["pro-themes"])
-        XCTAssertEqual(catalog.search(matching: "OPEN").map(\.id), ["open-documents"])
+        XCTAssertTrue(catalog.search(matching: "OPEN").map(\.id).contains("open-documents"))
         XCTAssertEqual(catalog.search(matching: "").map(\.id), catalog.extensions.map(\.id))
     }
 
@@ -374,6 +381,14 @@ final class ExtensionRegistryTests: XCTestCase {
             catalog.extension(withID: "clipboard-slots")?.description,
             "Save and reuse text clipboard content across 10 named slots."
         )
+        XCTAssertEqual(
+            catalog.extension(withID: "ai-summarizer")?.description,
+            "Send selected text to a configured agent and summarize it."
+        )
+        XCTAssertEqual(
+            catalog.extension(withID: "ai-smart-search")?.description,
+            "Search open documents semantically through a configured agent."
+        )
     }
 
     func testEachDownloadableExtensionHasOwnSourceDirectory() throws {
@@ -480,6 +495,41 @@ final class ExtensionRegistryTests: XCTestCase {
 
         XCTAssertTrue(registry.clipboards.isEmpty)
         XCTAssertTrue(installed.isInstalled("clipboard-slots"))
+    }
+
+    func testRegistryLoadsAITextTasksOnlyWhenInstalled() {
+        let withoutAI = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: []))
+        let withAI = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: [
+            "ai-summarizer",
+            "ai-code-explainer",
+            "ai-code-refactor",
+            "ai-meeting-notes"
+        ]))
+
+        XCTAssertTrue(withoutAI.aiTextTasks.isEmpty)
+        XCTAssertEqual(
+            withAI.aiTextTasks.map(\.id),
+            ["ai-summarizer", "ai-code-explainer", "ai-code-refactor", "ai-meeting-notes"]
+        )
+    }
+
+    func testRegistryLoadsAISmartSearchOnlyWhenInstalled() {
+        let withoutSmartSearch = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: []))
+        let withSmartSearch = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["ai-smart-search"]))
+
+        XCTAssertTrue(withoutSmartSearch.aiSmartSearches.isEmpty)
+        XCTAssertEqual(withSmartSearch.aiSmartSearches.first?.id, "ai-smart-search")
+    }
+
+    func testRegistryDoesNotLoadDeactivatedAIExtension() {
+        var installed = InstalledExtensions(installedIDs: ["ai-summarizer", "ai-smart-search"])
+        installed.deactivate("ai-summarizer")
+        installed.deactivate("ai-smart-search")
+
+        let registry = ExtensionRegistry.loaded(installedExtensions: installed)
+
+        XCTAssertTrue(registry.aiTextTasks.isEmpty)
+        XCTAssertTrue(registry.aiSmartSearches.isEmpty)
     }
 
     func testRegistryLoadsJsonFormatterOnlyWhenInstalled() {

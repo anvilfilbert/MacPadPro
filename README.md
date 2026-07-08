@@ -19,6 +19,12 @@ Available downloadable extensions:
 - Document Browser: detachable, resizable, and closable open-document browser
 - Pro Themes: Night, Paper, and Terminal
 - Clipboard Slots: save and reuse text clipboard content across 10 slots
+- AI extensions:
+  - AI Summarizer
+  - AI Code Explainer
+  - AI Code Refactor Assistant
+  - AI Meeting Notes Cleaner
+  - AI Smart Search
 - Formatter extensions:
   - Format As JSON
   - Format C/PHP/C++ brace-style code
@@ -26,8 +32,10 @@ Available downloadable extensions:
   - Pretty Print JSON
 
 Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
-The registry currently owns built-in document browsers, themes, language definitions, text commands, and code formatters.
+The registry currently owns built-in document browsers, themes, language definitions, text commands, code formatters, clipboard tools, and AI extension commands.
 Language definitions also drive editor syntax coloring so a recognized PHP, C, C++, JavaScript, TypeScript, Java, CSS, or Objective-C++ file gets code-aware colors while remaining a plain-text document on disk.
+
+AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials, and AI calls are only made from explicit user actions.
 
 Downloadable extensions are represented through `ExtensionCatalog`.
 Each extension has a unique id, description, version, type, and download URL so users can download and install extensions one by one as `.macpadproext` packages.
@@ -70,7 +78,18 @@ Current extension packages:
 - `Extensions/json-formatter/JSONFormatterExtensionPackage.swift`
 - `Extensions/c-family-formatter/CFamilyFormatterExtensionPackage.swift`
 - `Extensions/clipboard-slots/ClipboardSlotsExtensionPackage.swift`
+- `Extensions/ai-summarizer/AISummarizerExtensionPackage.swift`
+- `Extensions/ai-code-explainer/AICodeExplainerExtensionPackage.swift`
+- `Extensions/ai-code-refactor/AICodeRefactorExtensionPackage.swift`
+- `Extensions/ai-meeting-notes/AIMeetingNotesExtensionPackage.swift`
+- `Extensions/ai-smart-search/AISmartSearchExtensionPackage.swift`
 - `Extensions/pro-themes/ProThemesExtensionPackage.swift`
+
+User guide for creating custom extensions:
+
+```text
+docs/Creating-Extensions.md
+```
 
 ## Build
 

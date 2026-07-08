@@ -1,0 +1,7 @@
+{
+  "id": "ai-smart-search",
+  "title": "AI Smart Search",
+  "description": "Search open documents semantically through a configured agent.",
+  "version": "1.0.0",
+  "kind": "aiSmartSearch"
+}

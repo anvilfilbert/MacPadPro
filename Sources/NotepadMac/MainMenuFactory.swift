@@ -52,7 +52,25 @@ enum MainMenuFactory {
 
         let extensionsMenu = NSMenu(title: "Extensions")
         addItem("Manage Extensions...", to: extensionsMenu, action: #selector(AppDelegate.showExtensionManager(_:)), target: target)
+        addItem("AI Agent Settings...", to: extensionsMenu, action: #selector(AppDelegate.showAIAgentSettings(_:)), target: target)
         extensionsMenu.addItem(.separator())
+
+        if !extensionRegistry.aiTextTasks.isEmpty || !extensionRegistry.aiSmartSearches.isEmpty {
+            let aiMenu = NSMenu(title: "AI")
+            for task in extensionRegistry.aiTextTasks {
+                let item = addItem(task.menuTitle, to: aiMenu, action: #selector(AppDelegate.runAITextTask(_:)), target: target)
+                item.representedObject = task.id
+            }
+            for smartSearch in extensionRegistry.aiSmartSearches {
+                let item = addItem(smartSearch.title, to: aiMenu, action: #selector(AppDelegate.showAISmartSearch(_:)), target: target)
+                item.representedObject = smartSearch.id
+            }
+
+            let aiRoot = NSMenuItem(title: "AI", action: nil, keyEquivalent: "")
+            aiRoot.submenu = aiMenu
+            extensionsMenu.addItem(aiRoot)
+            extensionsMenu.addItem(.separator())
+        }
 
         for browser in extensionRegistry.documentBrowsers {
             let item = addItem(browser.title, to: extensionsMenu, action: #selector(AppDelegate.showDocumentBrowser(_:)), target: target)

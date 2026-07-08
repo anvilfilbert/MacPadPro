@@ -1,0 +1,7 @@
+{
+  "id": "ai-meeting-notes",
+  "title": "AI Meeting Notes Cleaner",
+  "description": "Clean selected meeting notes into summary, decisions, actions, and open questions.",
+  "version": "1.0.0",
+  "kind": "aiTextTask"
+}

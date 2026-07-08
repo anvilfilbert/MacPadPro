@@ -1,0 +1,7 @@
+{
+  "id": "ai-summarizer",
+  "title": "AI Summarizer",
+  "description": "Send selected text to a configured agent and summarize it.",
+  "version": "1.0.0",
+  "kind": "aiTextTask"
+}

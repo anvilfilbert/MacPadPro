@@ -94,6 +94,23 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         )
     }
 
+    var aiSearchDocument: AISearchDocument {
+        let snippet = String(textView.string.prefix(2_000))
+        return AISearchDocument(
+            id: stateID,
+            title: fileURL?.lastPathComponent ?? "Untitled",
+            snippet: snippet
+        )
+    }
+
+    var aiFileName: String {
+        fileURL?.lastPathComponent ?? "Untitled"
+    }
+
+    var aiLanguageName: String {
+        extensionRegistry.detectLanguage(for: fileURL, text: textView.string)
+    }
+
     func focusDocument() {
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
@@ -264,6 +281,32 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
 
     func insertText(_ text: String) {
         textView.insertText(text, replacementRange: textView.selectedRange())
+        shouldRestoreInSession = true
+        updateTitle()
+        updateStatusBar()
+        refreshSyntaxHighlighting()
+        notifyStateChanged()
+    }
+
+    func selectedTextForAI() -> String? {
+        let selectedRange = textView.selectedRange()
+        guard selectedRange.length > 0 else { return nil }
+        return (textView.string as NSString).substring(with: selectedRange)
+    }
+
+    func replaceSelectedText(with text: String) {
+        textView.insertText(text, replacementRange: textView.selectedRange())
+        shouldRestoreInSession = true
+        updateTitle()
+        updateStatusBar()
+        refreshSyntaxHighlighting()
+        notifyStateChanged()
+    }
+
+    func loadGeneratedText(_ text: String) {
+        fileURL = nil
+        textView.string = text
+        originalText = ""
         shouldRestoreInSession = true
         updateTitle()
         updateStatusBar()

@@ -33,6 +33,46 @@
       "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/clipboard-slots/clipboard-slots.macpadproext"
     },
     {
+      "id": "ai-summarizer",
+      "title": "AI Summarizer",
+      "description": "Send selected text to a configured agent and summarize it.",
+      "version": "1.0.0",
+      "kind": "aiTextTask",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/ai-summarizer/ai-summarizer.macpadproext"
+    },
+    {
+      "id": "ai-code-explainer",
+      "title": "AI Code Explainer",
+      "description": "Explain selected code through a configured agent using filename and language context.",
+      "version": "1.0.0",
+      "kind": "aiTextTask",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/ai-code-explainer/ai-code-explainer.macpadproext"
+    },
+    {
+      "id": "ai-code-refactor",
+      "title": "AI Code Refactor Assistant",
+      "description": "Suggest safer refactors for selected code through a configured agent.",
+      "version": "1.0.0",
+      "kind": "aiTextTask",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/ai-code-refactor/ai-code-refactor.macpadproext"
+    },
+    {
+      "id": "ai-meeting-notes",
+      "title": "AI Meeting Notes Cleaner",
+      "description": "Clean selected meeting notes into summary, decisions, actions, and open questions.",
+      "version": "1.0.0",
+      "kind": "aiTextTask",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/ai-meeting-notes/ai-meeting-notes.macpadproext"
+    },
+    {
+      "id": "ai-smart-search",
+      "title": "AI Smart Search",
+      "description": "Search open documents semantically through a configured agent.",
+      "version": "1.0.0",
+      "kind": "aiSmartSearch",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/ai-smart-search/ai-smart-search.macpadproext"
+    },
+    {
       "id": "pro-themes",
       "title": "Pro Themes",
       "description": "Add Night, Paper, and Terminal editor themes.",
