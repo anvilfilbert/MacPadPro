@@ -92,6 +92,96 @@ public struct DocumentBrowserItem: Sendable, Equatable {
     }
 }
 
+public struct ExtensionContribution: Sendable {
+    public let catalogEntry: DownloadableExtension
+    public let themes: [EditorTheme]
+    public let textCommands: [TextCommand]
+    public let formatters: [any CodeFormatter]
+    public let documentBrowsers: [DocumentBrowserExtension]
+    public let clipboards: [ClipboardExtension]
+    public let aiTextTasks: [AITextTask]
+    public let aiSmartSearches: [AISmartSearchExtension]
+    public let markdownPreviews: [ExtensionMenuAction]
+    public let exportTools: [ExtensionMenuAction]
+    public let documentStatistics: [ExtensionMenuAction]
+    public let diffViewers: [ExtensionMenuAction]
+    public let autoBackups: [ExtensionMenuAction]
+    public let clipboardSnippets: [ExtensionMenuAction]
+    public let fileOutlines: [ExtensionMenuAction]
+    public let csvTableViewers: [ExtensionMenuAction]
+    public let markdownTools: [ExtensionMenuAction]
+    public let encodingLineEndings: [ExtensionMenuAction]
+    public let focusModes: [ExtensionMenuAction]
+
+    public init(
+        catalogEntry: DownloadableExtension,
+        themes: [EditorTheme],
+        textCommands: [TextCommand],
+        formatters: [any CodeFormatter],
+        documentBrowsers: [DocumentBrowserExtension],
+        clipboards: [ClipboardExtension],
+        aiTextTasks: [AITextTask],
+        aiSmartSearches: [AISmartSearchExtension],
+        markdownPreviews: [ExtensionMenuAction],
+        exportTools: [ExtensionMenuAction],
+        documentStatistics: [ExtensionMenuAction],
+        diffViewers: [ExtensionMenuAction],
+        autoBackups: [ExtensionMenuAction],
+        clipboardSnippets: [ExtensionMenuAction],
+        fileOutlines: [ExtensionMenuAction],
+        csvTableViewers: [ExtensionMenuAction],
+        markdownTools: [ExtensionMenuAction],
+        encodingLineEndings: [ExtensionMenuAction],
+        focusModes: [ExtensionMenuAction]
+    ) {
+        self.catalogEntry = catalogEntry
+        self.themes = themes
+        self.textCommands = textCommands
+        self.formatters = formatters
+        self.documentBrowsers = documentBrowsers
+        self.clipboards = clipboards
+        self.aiTextTasks = aiTextTasks
+        self.aiSmartSearches = aiSmartSearches
+        self.markdownPreviews = markdownPreviews
+        self.exportTools = exportTools
+        self.documentStatistics = documentStatistics
+        self.diffViewers = diffViewers
+        self.autoBackups = autoBackups
+        self.clipboardSnippets = clipboardSnippets
+        self.fileOutlines = fileOutlines
+        self.csvTableViewers = csvTableViewers
+        self.markdownTools = markdownTools
+        self.encodingLineEndings = encodingLineEndings
+        self.focusModes = focusModes
+    }
+
+    public init(catalogEntry: DownloadableExtension, textCommands: [TextCommand]) {
+        self.init(
+            catalogEntry: catalogEntry,
+            themes: [],
+            textCommands: textCommands,
+            formatters: [],
+            documentBrowsers: [],
+            clipboards: [],
+            aiTextTasks: [],
+            aiSmartSearches: [],
+            markdownPreviews: [],
+            exportTools: [],
+            documentStatistics: [],
+            diffViewers: [],
+            autoBackups: [],
+            clipboardSnippets: [],
+            fileOutlines: [],
+            csvTableViewers: [],
+            markdownTools: [],
+            encodingLineEndings: [],
+            focusModes: []
+        )
+    }
+
+    public static let builtIn: [ExtensionContribution] = BuiltInExtensions.contributions
+}
+
 public enum ExtensionKind: String, Codable, Sendable {
     case documentBrowser
     case theme
@@ -443,7 +533,7 @@ public struct ExtensionPackageStore {
     }
 }
 
-private extension ExtensionPackageManifest {
+extension ExtensionPackageManifest {
     func validate(matches extensionItem: DownloadableExtension) throws {
         guard id == extensionItem.id,
               title == extensionItem.title,
@@ -461,7 +551,7 @@ private extension ExtensionPackageManifest {
 public struct ExtensionCatalog: Codable, Sendable, Equatable {
     public let extensions: [DownloadableExtension]
 
-    public static let `default` = ExtensionCatalog(extensions: BuiltInExtensions.downloadableExtensions)
+    public static let `default` = ExtensionCatalog(extensions: ExtensionContribution.builtIn.map(\.catalogEntry))
 
     public init(extensions: [DownloadableExtension]) {
         self.extensions = extensions
@@ -535,7 +625,7 @@ public struct ExtensionPackageDownloader {
     }
 }
 
-private func sha256Hex(for data: Data) -> String {
+func sha256Hex(for data: Data) -> String {
     SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
 }
 
@@ -642,40 +732,40 @@ public struct ExtensionRegistry: Sendable {
     public static let `default` = loaded(installedExtensions: .bundledDefault)
 
     public static func loaded(installedExtensions: InstalledExtensions) -> ExtensionRegistry {
-        loaded(installedExtensions: installedExtensions, packageStore: nil)
+        loaded(installedExtensions: installedExtensions, packageStore: nil, contributions: ExtensionContribution.builtIn)
     }
 
     public static func loaded(installedExtensions: InstalledExtensions, packageStore: ExtensionPackageStore) -> ExtensionRegistry {
-        loaded(installedExtensions: installedExtensions, packageStore: packageStore as ExtensionPackageStore?)
+        loaded(installedExtensions: installedExtensions, packageStore: packageStore as ExtensionPackageStore?, contributions: ExtensionContribution.builtIn)
     }
 
-    private static func loaded(installedExtensions: InstalledExtensions, packageStore: ExtensionPackageStore?) -> ExtensionRegistry {
+    public static func loaded(installedExtensions: InstalledExtensions, contributions: [ExtensionContribution]) -> ExtensionRegistry {
+        loaded(installedExtensions: installedExtensions, packageStore: nil, contributions: contributions)
+    }
+
+    private static func loaded(installedExtensions: InstalledExtensions, packageStore: ExtensionPackageStore?, contributions: [ExtensionContribution]) -> ExtensionRegistry {
+        let activeContributions = contributions.filter { installedExtensions.isActive($0.catalogEntry.id) }
         let themes = BuiltInExtensions.systemThemes
-            + (installedExtensions.isActive(ProThemesExtensionPackage.id) ? ProThemesExtensionPackage.themes : [])
-        let formatters = (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.formatters : [])
-            + (installedExtensions.isActive(CFamilyFormatterExtensionPackage.id) ? CFamilyFormatterExtensionPackage.formatters : [])
+            + activeContributions.flatMap(\.themes)
+        let formatters = activeContributions.flatMap(\.formatters)
         let textCommands = BuiltInExtensions.coreTextCommands
-            + (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.textCommands : [])
+            + activeContributions.flatMap(\.textCommands)
             + (packageStore?.scriptCommands(for: installedExtensions).map(\.textCommand) ?? [])
-        let documentBrowsers = installedExtensions.isActive(OpenDocumentsExtensionPackage.id) ? OpenDocumentsExtensionPackage.documentBrowsers : []
-        let clipboards = installedExtensions.isActive(ClipboardSlotsExtensionPackage.id) ? ClipboardSlotsExtensionPackage.clipboards : []
-        let aiTextTasks =
-            (installedExtensions.isActive(AISummarizerExtensionPackage.id) ? AISummarizerExtensionPackage.textTasks : [])
-            + (installedExtensions.isActive(AICodeExplainerExtensionPackage.id) ? AICodeExplainerExtensionPackage.textTasks : [])
-            + (installedExtensions.isActive(AICodeRefactorExtensionPackage.id) ? AICodeRefactorExtensionPackage.textTasks : [])
-            + (installedExtensions.isActive(AIMeetingNotesExtensionPackage.id) ? AIMeetingNotesExtensionPackage.textTasks : [])
-        let aiSmartSearches = installedExtensions.isActive(AISmartSearchExtensionPackage.id) ? AISmartSearchExtensionPackage.smartSearches : []
-        let markdownPreviews = installedExtensions.isActive(MarkdownPreviewExtensionPackage.id) ? MarkdownPreviewExtensionPackage.actions : []
-        let exportTools = installedExtensions.isActive(ExportToolsExtensionPackage.id) ? ExportToolsExtensionPackage.actions : []
-        let documentStatistics = installedExtensions.isActive(DocumentStatisticsExtensionPackage.id) ? DocumentStatisticsExtensionPackage.actions : []
-        let diffViewers = installedExtensions.isActive(DiffViewerExtensionPackage.id) ? DiffViewerExtensionPackage.actions : []
-        let autoBackups = installedExtensions.isActive(AutoBackupExtensionPackage.id) ? AutoBackupExtensionPackage.actions : []
-        let clipboardSnippets = installedExtensions.isActive(ClipboardSnippetsExtensionPackage.id) ? ClipboardSnippetsExtensionPackage.actions : []
-        let fileOutlines = installedExtensions.isActive(FileOutlineExtensionPackage.id) ? FileOutlineExtensionPackage.actions : []
-        let csvTableViewers = installedExtensions.isActive(CSVTableViewerExtensionPackage.id) ? CSVTableViewerExtensionPackage.actions : []
-        let markdownTools = installedExtensions.isActive(MarkdownToolsExtensionPackage.id) ? MarkdownToolsExtensionPackage.actions : []
-        let encodingLineEndings = installedExtensions.isActive(EncodingLineEndingsExtensionPackage.id) ? EncodingLineEndingsExtensionPackage.actions : []
-        let focusModes = installedExtensions.isActive(FocusModeExtensionPackage.id) ? FocusModeExtensionPackage.actions : []
+        let documentBrowsers = activeContributions.flatMap(\.documentBrowsers)
+        let clipboards = activeContributions.flatMap(\.clipboards)
+        let aiTextTasks = activeContributions.flatMap(\.aiTextTasks)
+        let aiSmartSearches = activeContributions.flatMap(\.aiSmartSearches)
+        let markdownPreviews = activeContributions.flatMap(\.markdownPreviews)
+        let exportTools = activeContributions.flatMap(\.exportTools)
+        let documentStatistics = activeContributions.flatMap(\.documentStatistics)
+        let diffViewers = activeContributions.flatMap(\.diffViewers)
+        let autoBackups = activeContributions.flatMap(\.autoBackups)
+        let clipboardSnippets = activeContributions.flatMap(\.clipboardSnippets)
+        let fileOutlines = activeContributions.flatMap(\.fileOutlines)
+        let csvTableViewers = activeContributions.flatMap(\.csvTableViewers)
+        let markdownTools = activeContributions.flatMap(\.markdownTools)
+        let encodingLineEndings = activeContributions.flatMap(\.encodingLineEndings)
+        let focusModes = activeContributions.flatMap(\.focusModes)
 
         return ExtensionRegistry(
             themes: themes,
@@ -819,28 +909,176 @@ private enum BuiltInExtensions {
         }
     ]
 
-    static let downloadableExtensions: [DownloadableExtension] = [
-        OpenDocumentsExtensionPackage.catalogEntry,
-        JSONFormatterExtensionPackage.catalogEntry,
-        CFamilyFormatterExtensionPackage.catalogEntry,
-        ClipboardSlotsExtensionPackage.catalogEntry,
-        AISummarizerExtensionPackage.catalogEntry,
-        AICodeExplainerExtensionPackage.catalogEntry,
-        AICodeRefactorExtensionPackage.catalogEntry,
-        AIMeetingNotesExtensionPackage.catalogEntry,
-        AISmartSearchExtensionPackage.catalogEntry,
-        ProThemesExtensionPackage.catalogEntry,
-        MarkdownPreviewExtensionPackage.catalogEntry,
-        ExportToolsExtensionPackage.catalogEntry,
-        DocumentStatisticsExtensionPackage.catalogEntry,
-        DiffViewerExtensionPackage.catalogEntry,
-        AutoBackupExtensionPackage.catalogEntry,
-        ClipboardSnippetsExtensionPackage.catalogEntry,
-        FileOutlineExtensionPackage.catalogEntry,
-        CSVTableViewerExtensionPackage.catalogEntry,
-        MarkdownToolsExtensionPackage.catalogEntry,
-        EncodingLineEndingsExtensionPackage.catalogEntry,
-        FocusModeExtensionPackage.catalogEntry,
-        TitleCaseCommandExtensionPackage.catalogEntry
+    static let contributions: [ExtensionContribution] = [
+        ExtensionContribution(catalogEntry: OpenDocumentsExtensionPackage.catalogEntry, documentBrowsers: OpenDocumentsExtensionPackage.documentBrowsers),
+        ExtensionContribution(catalogEntry: JSONFormatterExtensionPackage.catalogEntry, textCommands: JSONFormatterExtensionPackage.textCommands, formatters: JSONFormatterExtensionPackage.formatters),
+        ExtensionContribution(catalogEntry: CFamilyFormatterExtensionPackage.catalogEntry, formatters: CFamilyFormatterExtensionPackage.formatters),
+        ExtensionContribution(catalogEntry: ClipboardSlotsExtensionPackage.catalogEntry, clipboards: ClipboardSlotsExtensionPackage.clipboards),
+        ExtensionContribution(catalogEntry: AISummarizerExtensionPackage.catalogEntry, aiTextTasks: AISummarizerExtensionPackage.textTasks),
+        ExtensionContribution(catalogEntry: AICodeExplainerExtensionPackage.catalogEntry, aiTextTasks: AICodeExplainerExtensionPackage.textTasks),
+        ExtensionContribution(catalogEntry: AICodeRefactorExtensionPackage.catalogEntry, aiTextTasks: AICodeRefactorExtensionPackage.textTasks),
+        ExtensionContribution(catalogEntry: AIMeetingNotesExtensionPackage.catalogEntry, aiTextTasks: AIMeetingNotesExtensionPackage.textTasks),
+        ExtensionContribution(catalogEntry: AISmartSearchExtensionPackage.catalogEntry, aiSmartSearches: AISmartSearchExtensionPackage.smartSearches),
+        ExtensionContribution(catalogEntry: ProThemesExtensionPackage.catalogEntry, themes: ProThemesExtensionPackage.themes),
+        ExtensionContribution(catalogEntry: MarkdownPreviewExtensionPackage.catalogEntry, markdownPreviews: MarkdownPreviewExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: ExportToolsExtensionPackage.catalogEntry, exportTools: ExportToolsExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: DocumentStatisticsExtensionPackage.catalogEntry, documentStatistics: DocumentStatisticsExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: DiffViewerExtensionPackage.catalogEntry, diffViewers: DiffViewerExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: AutoBackupExtensionPackage.catalogEntry, autoBackups: AutoBackupExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: ClipboardSnippetsExtensionPackage.catalogEntry, clipboardSnippets: ClipboardSnippetsExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: FileOutlineExtensionPackage.catalogEntry, fileOutlines: FileOutlineExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: CSVTableViewerExtensionPackage.catalogEntry, csvTableViewers: CSVTableViewerExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: MarkdownToolsExtensionPackage.catalogEntry, markdownTools: MarkdownToolsExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: EncodingLineEndingsExtensionPackage.catalogEntry, encodingLineEndings: EncodingLineEndingsExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: FocusModeExtensionPackage.catalogEntry, focusModes: FocusModeExtensionPackage.actions),
+        ExtensionContribution(catalogEntry: TitleCaseCommandExtensionPackage.catalogEntry)
     ]
+}
+
+private extension ExtensionContribution {
+    init(catalogEntry: DownloadableExtension) {
+        self.init(catalogEntry: catalogEntry, payload: .empty)
+    }
+
+    init(catalogEntry: DownloadableExtension, themes: [EditorTheme]) {
+        self.init(catalogEntry: catalogEntry, payload: .themes(themes))
+    }
+
+    init(catalogEntry: DownloadableExtension, textCommands: [TextCommand], formatters: [any CodeFormatter]) {
+        self.init(catalogEntry: catalogEntry, payload: .textCommandsAndFormatters(textCommands, formatters))
+    }
+
+    init(catalogEntry: DownloadableExtension, formatters: [any CodeFormatter]) {
+        self.init(catalogEntry: catalogEntry, payload: .formatters(formatters))
+    }
+
+    init(catalogEntry: DownloadableExtension, documentBrowsers: [DocumentBrowserExtension]) {
+        self.init(catalogEntry: catalogEntry, payload: .documentBrowsers(documentBrowsers))
+    }
+
+    init(catalogEntry: DownloadableExtension, clipboards: [ClipboardExtension]) {
+        self.init(catalogEntry: catalogEntry, payload: .clipboards(clipboards))
+    }
+
+    init(catalogEntry: DownloadableExtension, aiTextTasks: [AITextTask]) {
+        self.init(catalogEntry: catalogEntry, payload: .aiTextTasks(aiTextTasks))
+    }
+
+    init(catalogEntry: DownloadableExtension, aiSmartSearches: [AISmartSearchExtension]) {
+        self.init(catalogEntry: catalogEntry, payload: .aiSmartSearches(aiSmartSearches))
+    }
+
+    init(catalogEntry: DownloadableExtension, markdownPreviews: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .markdownPreviews(markdownPreviews))
+    }
+
+    init(catalogEntry: DownloadableExtension, exportTools: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .exportTools(exportTools))
+    }
+
+    init(catalogEntry: DownloadableExtension, documentStatistics: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .documentStatistics(documentStatistics))
+    }
+
+    init(catalogEntry: DownloadableExtension, diffViewers: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .diffViewers(diffViewers))
+    }
+
+    init(catalogEntry: DownloadableExtension, autoBackups: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .autoBackups(autoBackups))
+    }
+
+    init(catalogEntry: DownloadableExtension, clipboardSnippets: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .clipboardSnippets(clipboardSnippets))
+    }
+
+    init(catalogEntry: DownloadableExtension, fileOutlines: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .fileOutlines(fileOutlines))
+    }
+
+    init(catalogEntry: DownloadableExtension, csvTableViewers: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .csvTableViewers(csvTableViewers))
+    }
+
+    init(catalogEntry: DownloadableExtension, markdownTools: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .markdownTools(markdownTools))
+    }
+
+    init(catalogEntry: DownloadableExtension, encodingLineEndings: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .encodingLineEndings(encodingLineEndings))
+    }
+
+    init(catalogEntry: DownloadableExtension, focusModes: [ExtensionMenuAction]) {
+        self.init(catalogEntry: catalogEntry, payload: .focusModes(focusModes))
+    }
+
+    init(catalogEntry: DownloadableExtension, payload: ExtensionContributionPayload) {
+        self.init(
+            catalogEntry: catalogEntry,
+            themes: payload.themes,
+            textCommands: payload.textCommands,
+            formatters: payload.formatters,
+            documentBrowsers: payload.documentBrowsers,
+            clipboards: payload.clipboards,
+            aiTextTasks: payload.aiTextTasks,
+            aiSmartSearches: payload.aiSmartSearches,
+            markdownPreviews: payload.markdownPreviews,
+            exportTools: payload.exportTools,
+            documentStatistics: payload.documentStatistics,
+            diffViewers: payload.diffViewers,
+            autoBackups: payload.autoBackups,
+            clipboardSnippets: payload.clipboardSnippets,
+            fileOutlines: payload.fileOutlines,
+            csvTableViewers: payload.csvTableViewers,
+            markdownTools: payload.markdownTools,
+            encodingLineEndings: payload.encodingLineEndings,
+            focusModes: payload.focusModes
+        )
+    }
+}
+
+private enum ExtensionContributionPayload {
+    case empty
+    case themes([EditorTheme])
+    case formatters([any CodeFormatter])
+    case textCommandsAndFormatters([TextCommand], [any CodeFormatter])
+    case documentBrowsers([DocumentBrowserExtension])
+    case clipboards([ClipboardExtension])
+    case aiTextTasks([AITextTask])
+    case aiSmartSearches([AISmartSearchExtension])
+    case markdownPreviews([ExtensionMenuAction])
+    case exportTools([ExtensionMenuAction])
+    case documentStatistics([ExtensionMenuAction])
+    case diffViewers([ExtensionMenuAction])
+    case autoBackups([ExtensionMenuAction])
+    case clipboardSnippets([ExtensionMenuAction])
+    case fileOutlines([ExtensionMenuAction])
+    case csvTableViewers([ExtensionMenuAction])
+    case markdownTools([ExtensionMenuAction])
+    case encodingLineEndings([ExtensionMenuAction])
+    case focusModes([ExtensionMenuAction])
+
+    var themes: [EditorTheme] { if case let .themes(value) = self { value } else { [] } }
+    var textCommands: [TextCommand] { if case let .textCommandsAndFormatters(value, _) = self { value } else { [] } }
+    var formatters: [any CodeFormatter] {
+        switch self {
+        case let .formatters(value), let .textCommandsAndFormatters(_, value): value
+        default: []
+        }
+    }
+    var documentBrowsers: [DocumentBrowserExtension] { if case let .documentBrowsers(value) = self { value } else { [] } }
+    var clipboards: [ClipboardExtension] { if case let .clipboards(value) = self { value } else { [] } }
+    var aiTextTasks: [AITextTask] { if case let .aiTextTasks(value) = self { value } else { [] } }
+    var aiSmartSearches: [AISmartSearchExtension] { if case let .aiSmartSearches(value) = self { value } else { [] } }
+    var markdownPreviews: [ExtensionMenuAction] { if case let .markdownPreviews(value) = self { value } else { [] } }
+    var exportTools: [ExtensionMenuAction] { if case let .exportTools(value) = self { value } else { [] } }
+    var documentStatistics: [ExtensionMenuAction] { if case let .documentStatistics(value) = self { value } else { [] } }
+    var diffViewers: [ExtensionMenuAction] { if case let .diffViewers(value) = self { value } else { [] } }
+    var autoBackups: [ExtensionMenuAction] { if case let .autoBackups(value) = self { value } else { [] } }
+    var clipboardSnippets: [ExtensionMenuAction] { if case let .clipboardSnippets(value) = self { value } else { [] } }
+    var fileOutlines: [ExtensionMenuAction] { if case let .fileOutlines(value) = self { value } else { [] } }
+    var csvTableViewers: [ExtensionMenuAction] { if case let .csvTableViewers(value) = self { value } else { [] } }
+    var markdownTools: [ExtensionMenuAction] { if case let .markdownTools(value) = self { value } else { [] } }
+    var encodingLineEndings: [ExtensionMenuAction] { if case let .encodingLineEndings(value) = self { value } else { [] } }
+    var focusModes: [ExtensionMenuAction] { if case let .focusModes(value) = self { value } else { [] } }
 }

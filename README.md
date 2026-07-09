@@ -126,6 +126,12 @@ Create a release zip with:
 ./scripts/package-release.sh
 ```
 
+Verify the release path with tests, packaging, and code-signature checks:
+
+```sh
+./scripts/verify-release.sh
+```
+
 ## Development
 
 Run tests:
@@ -136,7 +142,5 @@ swift test
 
 Before pushing extension changes, verify:
 
-- `swift test --quiet`
-- `./scripts/build-app.sh`
-- `./scripts/install-app.sh`
-- `./scripts/package-release.sh`
+- `./scripts/verify-release.sh`
+- `./scripts/install-app.sh` when the local `/Applications` build should be refreshed

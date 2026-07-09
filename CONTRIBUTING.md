@@ -37,15 +37,13 @@ New extensions must be downloadable, loadable, deactivatable, and deletable one 
 Run before opening a pull request:
 
 ```sh
-swift test --quiet
-./scripts/build-app.sh
+./scripts/verify-release.sh
 ```
 
-For release or install changes, also run:
+When the local `/Applications` copy should be refreshed, also run:
 
 ```sh
 ./scripts/install-app.sh
-./scripts/package-release.sh
 ```
 
 ## Pull Requests

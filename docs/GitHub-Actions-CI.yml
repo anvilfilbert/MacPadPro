@@ -14,11 +14,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Swift Tests
-        run: swift test --quiet
-
-      - name: Build App Bundle
-        run: ./scripts/build-app.sh
-
-      - name: Package Release Zip
-        run: ./scripts/package-release.sh
+      - name: Verify Release
+        run: ./scripts/verify-release.sh
