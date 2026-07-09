@@ -11,6 +11,8 @@ Each extension has two parts:
 - A Swift source directory inside the app source tree.
 - A repository package manifest that Extension Manager can download and validate.
 
+Script text-command extensions can also include package-owned files such as `transform.js`. Extension Manager downloads those files into the local extension package directory after validating their SHA-256 checksums.
+
 Use one directory per extension:
 
 ```text
@@ -49,6 +51,37 @@ The manifest must match the catalog entry exactly:
 - `kind`
 
 If these do not match, MacPad Pro rejects the package.
+
+Optional trust metadata is shown in Extension Manager:
+
+```json
+{
+  "author": "MacPad Pro Examples",
+  "permissions": ["readSelectedText", "editSelectedText"]
+}
+```
+
+Script text commands add a `scriptCommand` block:
+
+```json
+{
+  "scriptCommand": {
+    "id": "title-case-command",
+    "title": "Title Case Selection",
+    "scriptFile": "transform.js",
+    "sourceURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/title-case-command/transform.js",
+    "sourceSHA256": "c682f3921ea7821eccedc1e0ab550f8dfe7fd444f7ae43355f74c40d060d4e8c"
+  }
+}
+```
+
+The script file must define `transform(input)` and return replacement text:
+
+```js
+function transform(input) {
+  return input.toUpperCase();
+}
+```
 
 ## Catalog Entry
 
@@ -131,6 +164,8 @@ Current user-facing extension groups:
 - View: focus mode
 - AI: opt-in agent-backed text tasks and smart search
 
+Script text-command plugins appear with built-in text commands. They are the preferred first option for contributor-owned text transforms because they do not require native bundle loading.
+
 ## Activation Rules
 
 Never make a downloadable extension active by default. Keep:
@@ -185,6 +220,19 @@ Extensions should be explicit and local-first.
 - Store sensitive tokens in Keychain when possible.
 - Avoid logging secrets or document content.
 
+Declare permissions using these values:
+
+```text
+readSelectedText
+editSelectedText
+readDocumentText
+openDetachedWindow
+localStorage
+networkAccess
+```
+
+For downloadable scripts, include `sourceSHA256`. Extension Manager rejects script files whose actual checksum differs from the manifest.
+
 ## Tests To Add
 
 Every extension should include focused tests:
@@ -195,6 +243,8 @@ Every extension should include focused tests:
 - The repository package manifest validates against the catalog entry.
 - Activation loads the feature only when installed.
 - Deactivation hides the feature without deleting the package.
+- Script plugins execute `transform(input)` and reject invalid script packages.
+- Installed package versions report update availability when the repository catalog has a newer version.
 - Core logic is tested without launching the app.
 
 Run:

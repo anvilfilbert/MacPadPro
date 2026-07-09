@@ -1,5 +1,7 @@
 import AppKit
+import CryptoKit
 import Foundation
+import JavaScriptCore
 
 public struct EditorTheme: @unchecked Sendable {
     public let id: String
@@ -112,12 +114,39 @@ public enum ExtensionKind: String, Codable, Sendable {
     case focusMode
 }
 
+public enum ExtensionPermission: String, Codable, Sendable, Equatable {
+    case readSelectedText
+    case editSelectedText
+    case readDocumentText
+    case openDetachedWindow
+    case localStorage
+    case networkAccess
+}
+
+public struct ExtensionScriptCommand: Codable, Sendable, Equatable {
+    public let id: String
+    public let title: String
+    public let scriptFile: String
+    public let sourceURL: URL?
+    public let sourceSHA256: String?
+
+    public init(id: String, title: String, scriptFile: String, sourceURL: URL?, sourceSHA256: String?) {
+        self.id = id
+        self.title = title
+        self.scriptFile = scriptFile
+        self.sourceURL = sourceURL
+        self.sourceSHA256 = sourceSHA256
+    }
+}
+
 public struct DownloadableExtension: Codable, Sendable, Equatable {
     public let id: String
     public let title: String
     public let description: String
     public let version: String
     public let kind: ExtensionKind
+    public let author: String?
+    public let permissions: [ExtensionPermission]
     public let downloadURL: URL
 
     public init(id: String, title: String, description: String, version: String, kind: ExtensionKind, downloadURL: URL) {
@@ -126,7 +155,52 @@ public struct DownloadableExtension: Codable, Sendable, Equatable {
         self.description = description
         self.version = version
         self.kind = kind
+        self.author = nil
+        self.permissions = []
         self.downloadURL = downloadURL
+    }
+
+    public init(
+        id: String,
+        title: String,
+        description: String,
+        version: String,
+        kind: ExtensionKind,
+        author: String?,
+        permissions: [ExtensionPermission],
+        downloadURL: URL
+    ) {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.version = version
+        self.kind = kind
+        self.author = author
+        self.permissions = permissions
+        self.downloadURL = downloadURL
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case description
+        case version
+        case kind
+        case author
+        case permissions
+        case downloadURL
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decode(String.self, forKey: .description)
+        version = try container.decode(String.self, forKey: .version)
+        kind = try container.decode(ExtensionKind.self, forKey: .kind)
+        author = try container.decodeIfPresent(String.self, forKey: .author)
+        permissions = try container.decodeIfPresent([ExtensionPermission].self, forKey: .permissions) ?? []
+        downloadURL = try container.decode(URL.self, forKey: .downloadURL)
     }
 }
 
@@ -136,6 +210,9 @@ public struct ExtensionPackageManifest: Codable, Sendable, Equatable {
     public let description: String
     public let version: String
     public let kind: ExtensionKind
+    public let author: String?
+    public let permissions: [ExtensionPermission]
+    public let scriptCommand: ExtensionScriptCommand?
 
     public init(id: String, title: String, description: String, version: String, kind: ExtensionKind) {
         self.id = id
@@ -143,16 +220,142 @@ public struct ExtensionPackageManifest: Codable, Sendable, Equatable {
         self.description = description
         self.version = version
         self.kind = kind
+        self.author = nil
+        self.permissions = []
+        self.scriptCommand = nil
+    }
+
+    public init(
+        id: String,
+        title: String,
+        description: String,
+        version: String,
+        kind: ExtensionKind,
+        author: String?,
+        permissions: [ExtensionPermission],
+        scriptCommand: ExtensionScriptCommand?
+    ) {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.version = version
+        self.kind = kind
+        self.author = author
+        self.permissions = permissions
+        self.scriptCommand = scriptCommand
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case description
+        case version
+        case kind
+        case author
+        case permissions
+        case scriptCommand
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decode(String.self, forKey: .description)
+        version = try container.decode(String.self, forKey: .version)
+        kind = try container.decode(ExtensionKind.self, forKey: .kind)
+        author = try container.decodeIfPresent(String.self, forKey: .author)
+        permissions = try container.decodeIfPresent([ExtensionPermission].self, forKey: .permissions) ?? []
+        scriptCommand = try container.decodeIfPresent(ExtensionScriptCommand.self, forKey: .scriptCommand)
     }
 }
 
 public enum ExtensionPackageDownloadError: LocalizedError, Equatable {
     case packageDoesNotMatchCatalog(expectedID: String, actualID: String)
+    case scriptFileMissing(scriptFile: String)
+    case scriptChecksumMismatch(expectedSHA256: String, actualSHA256: String, scriptFile: String)
 
     public var errorDescription: String? {
         switch self {
         case let .packageDoesNotMatchCatalog(expectedID, actualID):
             "Downloaded package id '\(actualID)' does not match catalog extension id '\(expectedID)'."
+        case let .scriptFileMissing(scriptFile):
+            "Script '\(scriptFile)' is missing from the local extension package."
+        case let .scriptChecksumMismatch(expectedSHA256, actualSHA256, scriptFile):
+            "Script '\(scriptFile)' checksum mismatch. Expected SHA-256 \(expectedSHA256), got \(actualSHA256)."
+        }
+    }
+}
+
+public enum ScriptTextCommandError: LocalizedError, Equatable {
+    case couldNotCreateContext
+    case scriptCouldNotDecode(path: String)
+    case missingTransformFunction(path: String)
+    case scriptException(message: String)
+    case transformReturnedNoText(commandID: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .couldNotCreateContext:
+            "Could not create JavaScript execution context."
+        case let .scriptCouldNotDecode(path):
+            "Could not decode plugin script as UTF-8: \(path)."
+        case let .missingTransformFunction(path):
+            "Plugin script must define function transform(input): \(path)."
+        case let .scriptException(message):
+            "Plugin script failed: \(message)."
+        case let .transformReturnedNoText(commandID):
+            "Plugin command '\(commandID)' did not return text."
+        }
+    }
+}
+
+public struct ScriptTextCommand: Sendable, Equatable {
+    public let id: String
+    public let title: String
+    public let scriptURL: URL
+
+    public init(id: String, title: String, scriptURL: URL) {
+        self.id = id
+        self.title = title
+        self.scriptURL = scriptURL
+    }
+
+    public func transform(_ text: String) throws -> String {
+        let scriptData = try Data(contentsOf: scriptURL)
+        guard let script = String(data: scriptData, encoding: .utf8) else {
+            throw ScriptTextCommandError.scriptCouldNotDecode(path: scriptURL.path)
+        }
+        guard let context = JSContext() else {
+            throw ScriptTextCommandError.couldNotCreateContext
+        }
+
+        var exceptionMessage: String?
+        context.exceptionHandler = { _, exception in
+            exceptionMessage = exception?.toString() ?? "Unknown JavaScript error"
+        }
+        context.evaluateScript(script)
+        if let exceptionMessage {
+            throw ScriptTextCommandError.scriptException(message: exceptionMessage)
+        }
+
+        let transformFunction = context.objectForKeyedSubscript("transform")
+        guard let transformFunction, !transformFunction.isUndefined else {
+            throw ScriptTextCommandError.missingTransformFunction(path: scriptURL.path)
+        }
+
+        let result = transformFunction.call(withArguments: [text])
+        if let exceptionMessage {
+            throw ScriptTextCommandError.scriptException(message: exceptionMessage)
+        }
+        guard let output = result?.toString() else {
+            throw ScriptTextCommandError.transformReturnedNoText(commandID: id)
+        }
+        return output
+    }
+
+    public var textCommand: TextCommand {
+        TextCommand(id: id, title: title) { text in
+            try transform(text)
         }
     }
 }
@@ -166,6 +369,12 @@ public struct ExtensionPackageStore {
 
     public func packageURL(for extensionID: String) -> URL {
         directory.appendingPathComponent("\(extensionID).macpadproext")
+    }
+
+    public func scriptURL(for extensionID: String, scriptFile: String) -> URL {
+        directory
+            .appendingPathComponent(extensionID, isDirectory: true)
+            .appendingPathComponent(scriptFile)
     }
 
     public func hasPackage(for extensionID: String) -> Bool {
@@ -182,9 +391,55 @@ public struct ExtensionPackageStore {
     }
 
     public func validateInstalledPackage(for extensionItem: DownloadableExtension) throws {
-        let packageData = try Data(contentsOf: packageURL(for: extensionItem.id))
-        let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
+        let manifest = try installedManifest(for: extensionItem.id)
         try manifest.validate(matches: extensionItem)
+        try validateInstalledScript(for: manifest)
+    }
+
+    public func installedManifest(for extensionID: String) throws -> ExtensionPackageManifest {
+        let packageData = try Data(contentsOf: packageURL(for: extensionID))
+        return try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
+    }
+
+    public func installedVersion(for extensionID: String) throws -> String {
+        try installedManifest(for: extensionID).version
+    }
+
+    public func hasUpdateAvailable(for extensionItem: DownloadableExtension) -> Bool {
+        guard let installedVersion = try? installedVersion(for: extensionItem.id) else { return false }
+        return compareVersionStrings(installedVersion, extensionItem.version) == .orderedAscending
+    }
+
+    public func scriptCommands(for installedExtensions: InstalledExtensions) -> [ScriptTextCommand] {
+        installedExtensions.installedIDs
+            .sorted()
+            .filter(installedExtensions.isActive)
+            .compactMap { extensionID in
+                guard let manifest = try? installedManifest(for: extensionID),
+                      manifest.kind == .textCommand,
+                      let scriptCommand = manifest.scriptCommand else { return nil }
+                let scriptURL = scriptURL(for: manifest.id, scriptFile: scriptCommand.scriptFile)
+                guard FileManager.default.fileExists(atPath: scriptURL.path) else { return nil }
+                return ScriptTextCommand(id: scriptCommand.id, title: scriptCommand.title, scriptURL: scriptURL)
+            }
+    }
+
+    private func validateInstalledScript(for manifest: ExtensionPackageManifest) throws {
+        guard let scriptCommand = manifest.scriptCommand else { return }
+        let scriptURL = scriptURL(for: manifest.id, scriptFile: scriptCommand.scriptFile)
+        guard FileManager.default.fileExists(atPath: scriptURL.path) else {
+            throw ExtensionPackageDownloadError.scriptFileMissing(scriptFile: scriptCommand.scriptFile)
+        }
+        guard let expectedSHA256 = scriptCommand.sourceSHA256 else { return }
+        let scriptData = try Data(contentsOf: scriptURL)
+        let actualSHA256 = sha256Hex(for: scriptData)
+        guard actualSHA256.caseInsensitiveCompare(expectedSHA256) == .orderedSame else {
+            throw ExtensionPackageDownloadError.scriptChecksumMismatch(
+                expectedSHA256: expectedSHA256,
+                actualSHA256: actualSHA256,
+                scriptFile: scriptCommand.scriptFile
+            )
+        }
     }
 }
 
@@ -256,10 +511,45 @@ public struct ExtensionPackageDownloader {
         try manifest.validate(matches: extensionItem)
 
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let destinationURL = ExtensionPackageStore(directory: directory).packageURL(for: extensionItem.id)
+        let store = ExtensionPackageStore(directory: directory)
+        if let scriptCommand = manifest.scriptCommand,
+           let sourceURL = scriptCommand.sourceURL {
+            let scriptData = try Data(contentsOf: sourceURL)
+            if let expectedSHA256 = scriptCommand.sourceSHA256 {
+                let actualSHA256 = sha256Hex(for: scriptData)
+                guard actualSHA256.caseInsensitiveCompare(expectedSHA256) == .orderedSame else {
+                    throw ExtensionPackageDownloadError.scriptChecksumMismatch(
+                        expectedSHA256: expectedSHA256,
+                        actualSHA256: actualSHA256,
+                        scriptFile: scriptCommand.scriptFile
+                    )
+                }
+            }
+            let scriptDestinationURL = store.scriptURL(for: extensionItem.id, scriptFile: scriptCommand.scriptFile)
+            try FileManager.default.createDirectory(at: scriptDestinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try scriptData.write(to: scriptDestinationURL, options: .atomic)
+        }
+        let destinationURL = store.packageURL(for: extensionItem.id)
         try packageData.write(to: destinationURL, options: .atomic)
         return destinationURL
     }
+}
+
+private func sha256Hex(for data: Data) -> String {
+    SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+}
+
+private func compareVersionStrings(_ lhs: String, _ rhs: String) -> ComparisonResult {
+    let lhsParts = lhs.split(separator: ".").map { Int($0) ?? 0 }
+    let rhsParts = rhs.split(separator: ".").map { Int($0) ?? 0 }
+    let count = max(lhsParts.count, rhsParts.count)
+    for index in 0..<count {
+        let left = index < lhsParts.count ? lhsParts[index] : 0
+        let right = index < rhsParts.count ? rhsParts[index] : 0
+        if left < right { return .orderedAscending }
+        if left > right { return .orderedDescending }
+    }
+    return .orderedSame
 }
 
 public struct InstalledExtensions: Codable, Sendable, Equatable {
@@ -304,6 +594,14 @@ public struct InstalledExtensions: Codable, Sendable, Equatable {
         deactivatedIDs.remove(id)
     }
 
+    public mutating func update(_ id: String) {
+        let wasDeactivated = deactivatedIDs.contains(id)
+        installedIDs.insert(id)
+        if wasDeactivated {
+            deactivatedIDs.insert(id)
+        }
+    }
+
     public mutating func activate(_ id: String) {
         guard installedIDs.contains(id) else { return }
         deactivatedIDs.remove(id)
@@ -344,12 +642,21 @@ public struct ExtensionRegistry: Sendable {
     public static let `default` = loaded(installedExtensions: .bundledDefault)
 
     public static func loaded(installedExtensions: InstalledExtensions) -> ExtensionRegistry {
+        loaded(installedExtensions: installedExtensions, packageStore: nil)
+    }
+
+    public static func loaded(installedExtensions: InstalledExtensions, packageStore: ExtensionPackageStore) -> ExtensionRegistry {
+        loaded(installedExtensions: installedExtensions, packageStore: packageStore as ExtensionPackageStore?)
+    }
+
+    private static func loaded(installedExtensions: InstalledExtensions, packageStore: ExtensionPackageStore?) -> ExtensionRegistry {
         let themes = BuiltInExtensions.systemThemes
             + (installedExtensions.isActive(ProThemesExtensionPackage.id) ? ProThemesExtensionPackage.themes : [])
         let formatters = (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.formatters : [])
             + (installedExtensions.isActive(CFamilyFormatterExtensionPackage.id) ? CFamilyFormatterExtensionPackage.formatters : [])
         let textCommands = BuiltInExtensions.coreTextCommands
             + (installedExtensions.isActive(JSONFormatterExtensionPackage.id) ? JSONFormatterExtensionPackage.textCommands : [])
+            + (packageStore?.scriptCommands(for: installedExtensions).map(\.textCommand) ?? [])
         let documentBrowsers = installedExtensions.isActive(OpenDocumentsExtensionPackage.id) ? OpenDocumentsExtensionPackage.documentBrowsers : []
         let clipboards = installedExtensions.isActive(ClipboardSlotsExtensionPackage.id) ? ClipboardSlotsExtensionPackage.clipboards : []
         let aiTextTasks =
@@ -533,6 +840,7 @@ private enum BuiltInExtensions {
         CSVTableViewerExtensionPackage.catalogEntry,
         MarkdownToolsExtensionPackage.catalogEntry,
         EncodingLineEndingsExtensionPackage.catalogEntry,
-        FocusModeExtensionPackage.catalogEntry
+        FocusModeExtensionPackage.catalogEntry,
+        TitleCaseCommandExtensionPackage.catalogEntry
     ]
 }

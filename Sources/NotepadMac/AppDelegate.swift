@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var documentBrowserController: DocumentBrowserWindowController?
     private var extensionManagerController: ExtensionManagerWindowController?
     private var aiAgentSettingsController: AIAgentSettingsWindowController?
+    private var aiProgressController: AIProgressWindowController?
+    private var aiRequestTask: Task<Void, Never>?
     private var aiSmartSearchController: AISmartSearchWindowController?
     private var markdownPreviewController: MarkdownPreviewWindowController?
     private var statisticsController: TextReportWindowController?
@@ -36,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isRestoringSession = false
 
     private var extensionRegistry: ExtensionRegistry {
-        ExtensionRegistry.loaded(installedExtensions: installedExtensions)
+        ExtensionRegistry.loaded(installedExtensions: installedExtensions, packageStore: extensionPackageStore)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -224,14 +226,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             languageName: controller.aiLanguageName
         )
 
-        Task {
+        aiRequestTask?.cancel()
+        let progressController = showAIProgress(title: task.title)
+        let requestTask = Task { [weak self] in
             do {
                 let result = try await AIAgentClient(configuration: configuration).complete(prompt: prompt)
-                presentAIResult(result.text, for: task, sourceController: controller)
+                try Task.checkCancellation()
+                self?.finishAITextRequest(result.text, for: task, sourceController: controller)
+            } catch is CancellationError {
+                self?.finishCancelledAITextRequest()
             } catch {
-                showError("AI request failed.", detail: error.localizedDescription)
+                self?.finishFailedAITextRequest(error)
             }
         }
+        aiRequestTask = requestTask
+        progressController.onCancel = { requestTask.cancel() }
     }
     @objc func showAISmartSearch(_ sender: NSMenuItem) {
         guard extensionRegistry.aiSmartSearches.contains(where: { $0.id == sender.representedObject as? String }) else { return }
@@ -501,6 +510,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             installedProvider: { [weak self] in self?.installedExtensions ?? .bundledDefault },
             hasLocalPackage: { [weak self] extensionItem in
                 self?.extensionPackageStore.hasValidatedPackage(for: extensionItem) ?? false
+            },
+            hasUpdateAvailable: { [weak self] extensionItem in
+                self?.extensionPackageStore.hasUpdateAvailable(for: extensionItem) ?? false
             },
             refreshCatalogFromRepository: { [weak self] in
                 guard let self else { return .default }
@@ -893,6 +905,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return configuration
     }
 
+    private func showAIProgress(title: String) -> AIProgressWindowController {
+        let controller = AIProgressWindowController(title: title)
+        controller.onClose = { [weak self] in
+            self?.aiProgressController = nil
+        }
+        aiProgressController = controller
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+        controller.start()
+        return controller
+    }
+
+    private func finishAITextRequest(_ text: String, for task: AITextTask, sourceController: EditorWindowController) {
+        aiProgressController?.close()
+        aiProgressController = nil
+        aiRequestTask = nil
+        presentAIResult(text, for: task, sourceController: sourceController)
+    }
+
+    private func finishCancelledAITextRequest() {
+        aiProgressController?.close()
+        aiProgressController = nil
+        aiRequestTask = nil
+    }
+
+    private func finishFailedAITextRequest(_ error: Error) {
+        aiProgressController?.close()
+        aiProgressController = nil
+        aiRequestTask = nil
+        showError("AI request failed.", detail: error.localizedDescription)
+    }
+
     private func presentAIResult(_ text: String, for task: AITextTask, sourceController: EditorWindowController) {
         switch task.resultDisposition {
         case .openDocument, .previewDocument:
@@ -978,8 +1022,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func downloadExtension(_ extensionItem: DownloadableExtension) throws {
+        let wasInstalled = installedExtensions.isInstalled(extensionItem.id)
         try extensionPackageDownloader.download(extensionItem, into: extensionPackagesDirectory)
-        installedExtensions.load(extensionItem.id)
+        if wasInstalled {
+            installedExtensions.update(extensionItem.id)
+        } else {
+            installedExtensions.load(extensionItem.id)
+        }
         saveInstalledExtensions()
         reloadExtensions()
     }

@@ -14,6 +14,14 @@ Each extension has one directory:
 RepositoryExtensions/<extension-id>/<extension-id>.macpadproext
 ```
 
+Extensions can include extra package-owned files in the same directory. Script text-command extensions use:
+
+```text
+RepositoryExtensions/<extension-id>/transform.js
+```
+
+The manifest should include `scriptCommand.sourceURL` and `scriptCommand.sourceSHA256` so Extension Manager can download and verify the script before saving it locally.
+
 The `.macpadproext` manifest must match the catalog entry exactly:
 
 - `id`
@@ -23,6 +31,13 @@ The `.macpadproext` manifest must match the catalog entry exactly:
 - `kind`
 
 If any value differs, Extension Manager rejects the package.
+
+Extension Manager also displays optional trust metadata:
+
+- `author`
+- `permissions`
+
+Installed packages show `Update Available` when this catalog publishes a newer semantic version than the local package.
 
 ## Current Keywords
 
@@ -56,6 +71,9 @@ Use these terms in extension descriptions when relevant so users can find packag
 - ai agent
 - ollama
 - openrouter
+- javascript
+- script command
+- title case
 
 ## Publishing Checklist
 

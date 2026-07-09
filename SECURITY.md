@@ -22,6 +22,14 @@ AI extensions must not ship built-in credentials. Users configure their own loca
 - Store tokens in Keychain when practical.
 - Do not log document text, snippets, backups, or tokens.
 
+## Plugin Package Rules
+
+- Declare plugin permissions in the catalog and package manifest.
+- Use the narrowest permissions possible, such as `readSelectedText` and `editSelectedText` for text commands.
+- Include `sourceSHA256` for downloadable script files.
+- Do not include obfuscated scripts or hidden network calls.
+- Native Swift extension behavior must be reviewed and built with the app; MacPad Pro does not load arbitrary native third-party bundles.
+
 ## Reporting
 
 Open a private GitHub security advisory for `anvilfilbert/MacPadPro` or contact the repository owner through GitHub.

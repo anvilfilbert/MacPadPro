@@ -21,6 +21,7 @@ MacPad Pro is the experimental extension-friendly edition of [MacPad](https://gi
 - Syntax coloring for PHP and C-family files, including comments, strings, keywords, numbers, PHP variables, and PHP open tags.
 - Built-in text commands: trim trailing whitespace, sort lines, uppercase, and lowercase.
 - Extension Manager for downloading, loading, activating, deactivating, and deleting Pro extensions one by one.
+- Script text-command plugins with manifest-declared permissions and SHA-256 verified package files.
 - Local-first extension behavior for clipboard, snippets, backups, versions, and document tools.
 - Optional AI extensions that connect only to user-configured local or remote OpenAI-compatible agents.
 
@@ -46,6 +47,7 @@ Fresh installs do not activate downloadable extensions. Users enable only the ex
 | Focus / Typewriter Mode | `focus-mode` | `Extensions > View > Focus Mode` | Distraction-free editing toggle. |
 | JSON Formatter | `json-formatter` | `Extensions > Format As` | Pretty-print JSON. |
 | C/PHP Formatter | `c-family-formatter` | `Extensions > Format As` | Format PHP, C, C++, Java, JavaScript, TypeScript, and CSS brace-style code. |
+| Title Case Command | `title-case-command` | text commands | Example JavaScript plugin command with checksum-verified package script. |
 | AI Summarizer | `ai-summarizer` | `Extensions > AI > Summarize Selection` | Sends selected text to configured agent. |
 | AI Code Explainer | `ai-code-explainer` | `Extensions > AI > Explain Code` | Explains selected code with filename/language context. |
 | AI Code Refactor Assistant | `ai-code-refactor` | `Extensions > AI > Suggest Refactor` | Opens suggested refactor output in a new document. |
@@ -75,6 +77,8 @@ Each extension has:
 - focused tests for catalog/package/activation/core behavior
 
 Downloaded `.macpadproext` packages are stored locally in Application Support under `MacPad Pro/Extensions`. Packages are decoded and validated against the selected catalog entry before loading.
+
+Script command packages can include extra files such as `transform.js`. MacPad Pro downloads those files separately, verifies SHA-256 checksums when declared, and exposes active commands through the text-command menu.
 
 ## AI Agent Setup
 

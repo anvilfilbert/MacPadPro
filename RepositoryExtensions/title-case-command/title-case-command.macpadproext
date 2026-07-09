@@ -1,0 +1,16 @@
+{
+  "id": "title-case-command",
+  "title": "Title Case Command",
+  "description": "Convert selected text to title case with a JavaScript plugin command.",
+  "version": "1.0.0",
+  "kind": "textCommand",
+  "author": "MacPad Pro Examples",
+  "permissions": ["readSelectedText", "editSelectedText"],
+  "scriptCommand": {
+    "id": "title-case-command",
+    "title": "Title Case Selection",
+    "scriptFile": "transform.js",
+    "sourceURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/title-case-command/transform.js",
+    "sourceSHA256": "c682f3921ea7821eccedc1e0ab550f8dfe7fd444f7ae43355f74c40d060d4e8c"
+  }
+}

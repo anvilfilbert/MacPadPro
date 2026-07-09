@@ -167,6 +167,16 @@
       "version": "1.0.0",
       "kind": "focusMode",
       "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/focus-mode/focus-mode.macpadproext"
+    },
+    {
+      "id": "title-case-command",
+      "title": "Title Case Command",
+      "description": "Convert selected text to title case with a JavaScript plugin command.",
+      "version": "1.0.0",
+      "kind": "textCommand",
+      "author": "MacPad Pro Examples",
+      "permissions": ["readSelectedText", "editSelectedText"],
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/title-case-command/title-case-command.macpadproext"
     }
   ]
 }

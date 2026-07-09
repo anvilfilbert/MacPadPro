@@ -7,6 +7,8 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
     private enum Column {
         static let extensionName = NSUserInterfaceItemIdentifier("extension")
         static let description = NSUserInterfaceItemIdentifier("description")
+        static let author = NSUserInterfaceItemIdentifier("author")
+        static let permissions = NSUserInterfaceItemIdentifier("permissions")
         static let kind = NSUserInterfaceItemIdentifier("kind")
         static let version = NSUserInterfaceItemIdentifier("version")
         static let status = NSUserInterfaceItemIdentifier("status")
@@ -16,6 +18,7 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
     private var visibleExtensions: [DownloadableExtension]
     private let installedProvider: () -> InstalledExtensions
     private let hasLocalPackage: (DownloadableExtension) -> Bool
+    private let hasUpdateAvailable: (DownloadableExtension) -> Bool
     private let refreshCatalogFromRepository: () throws -> ExtensionCatalog
     private let downloadExtension: (DownloadableExtension) throws -> Void
     private let loadExtension: (DownloadableExtension) throws -> Void
@@ -36,6 +39,7 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         catalog: ExtensionCatalog,
         installedProvider: @escaping () -> InstalledExtensions,
         hasLocalPackage: @escaping (DownloadableExtension) -> Bool,
+        hasUpdateAvailable: @escaping (DownloadableExtension) -> Bool,
         refreshCatalogFromRepository: @escaping () throws -> ExtensionCatalog,
         downloadExtension: @escaping (DownloadableExtension) throws -> Void,
         loadExtension: @escaping (DownloadableExtension) throws -> Void,
@@ -47,6 +51,7 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         self.visibleExtensions = catalog.extensions
         self.installedProvider = installedProvider
         self.hasLocalPackage = hasLocalPackage
+        self.hasUpdateAvailable = hasUpdateAvailable
         self.refreshCatalogFromRepository = refreshCatalogFromRepository
         self.downloadExtension = downloadExtension
         self.loadExtension = loadExtension
@@ -202,9 +207,11 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
 
         tableView.addTableColumn(makeColumn(identifier: Column.extensionName, title: "Extension", width: 220))
         tableView.addTableColumn(makeColumn(identifier: Column.description, title: "Description", width: 300))
+        tableView.addTableColumn(makeColumn(identifier: Column.author, title: "Author", width: 150))
+        tableView.addTableColumn(makeColumn(identifier: Column.permissions, title: "Permissions", width: 190))
         tableView.addTableColumn(makeColumn(identifier: Column.kind, title: "Type", width: 120))
         tableView.addTableColumn(makeColumn(identifier: Column.version, title: "Version", width: 80))
-        tableView.addTableColumn(makeColumn(identifier: Column.status, title: "Status", width: 100))
+        tableView.addTableColumn(makeColumn(identifier: Column.status, title: "Status", width: 120))
         tableView.usesAlternatingRowBackgroundColors = true
         tableView.allowsColumnResizing = true
         tableView.delegate = self
@@ -273,7 +280,9 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         let installed = installedProvider()
         let isInstalled = installed.isInstalled(selectedExtension.id)
         let isActive = installed.isActive(selectedExtension.id)
-        downloadButton.isEnabled = !isInstalled
+        let hasUpdate = isInstalled && hasUpdateAvailable(selectedExtension)
+        downloadButton.title = hasUpdate ? "Update" : "Download"
+        downloadButton.isEnabled = !isInstalled || hasUpdate
         loadButton.isEnabled = !isInstalled && hasLocalPackage(selectedExtension)
         activateButton.isEnabled = isInstalled && !isActive
         deactivateButton.isEnabled = isInstalled && isActive
@@ -286,6 +295,10 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
             item.title
         case Column.description:
             item.description
+        case Column.author:
+            item.author ?? "MacPad Pro"
+        case Column.permissions:
+            item.permissions.map(\.rawValue).joined(separator: ", ")
         case Column.kind:
             item.kind.rawValue
         case Column.version:
@@ -301,6 +314,9 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         let installed = installedProvider()
         if !installed.isInstalled(item.id) {
             return "Not Loaded"
+        }
+        if hasUpdateAvailable(item) {
+            return installed.isActive(item.id) ? "Update Available" : "Inactive Update"
         }
         return installed.isActive(item.id) ? "Active" : "Inactive"
     }

@@ -8,9 +8,12 @@ For the full developer reference, see `docs/Creating-Extensions.md`.
 
 ## Current Plugin Model
 
-MacPad Pro does not yet load arbitrary third-party executable bundles at runtime.
+MacPad Pro supports two plugin paths:
 
-Current plugins are source-level Swift extensions that are added to the MacPad Pro repository, tested, released, and published through the repository extension catalog.
+- JavaScript text-command plugins loaded from downloaded package files.
+- Source-level Swift extensions that are added to the MacPad Pro repository, tested, released, and published through the repository extension catalog.
+
+MacPad Pro does not load arbitrary native third-party executable bundles. Native Swift extension behavior must be reviewed and built with the app.
 
 This keeps plugins:
 
@@ -76,6 +79,37 @@ Example:
 
 The package values must match the catalog values exactly.
 
+For a script command, include a script file, source URL, checksum, and permissions:
+
+```json
+{
+  "id": "title-case-command",
+  "title": "Title Case Command",
+  "description": "Convert selected text to title case with a JavaScript plugin command.",
+  "version": "1.0.0",
+  "kind": "textCommand",
+  "author": "MacPad Pro Examples",
+  "permissions": ["readSelectedText", "editSelectedText"],
+  "scriptCommand": {
+    "id": "title-case-command",
+    "title": "Title Case Selection",
+    "scriptFile": "transform.js",
+    "sourceURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/title-case-command/transform.js",
+    "sourceSHA256": "c682f3921ea7821eccedc1e0ab550f8dfe7fd444f7ae43355f74c40d060d4e8c"
+  }
+}
+```
+
+The script must define this function:
+
+```js
+function transform(input) {
+  return input;
+}
+```
+
+Only returned text replaces the selected text. Do not mutate global state or perform hidden network calls.
+
 ## Add The Plugin Source
 
 Create a Swift file in the plugin source directory.
@@ -126,6 +160,8 @@ markdownTools
 encodingLineEndings
 focusMode
 ```
+
+Use `textCommand` for JavaScript transform plugins. The command appears with other text commands after the user downloads and activates it.
 
 If the plugin needs a new kind, add it to `ExtensionKind`, extend `ExtensionRegistry`, and add tests for activation and deactivation.
 
@@ -199,6 +235,19 @@ Plugins must be explicit and local-first.
 - Do not include API keys or built-in credentials.
 - Store sensitive tokens in Keychain when practical.
 - Do not log document text or secrets.
+
+Declare permissions in both the catalog entry and package manifest. Use only the permissions the plugin needs:
+
+```text
+readSelectedText
+editSelectedText
+readDocumentText
+openDetachedWindow
+localStorage
+networkAccess
+```
+
+Script packages should include `sourceSHA256`. MacPad Pro validates downloaded script content before saving it locally.
 
 ## Tests To Add
 

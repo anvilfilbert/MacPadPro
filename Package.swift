@@ -13,7 +13,8 @@ let package = Package(
     targets: [
         .target(
             name: "NotepadMacCore",
-            path: "Sources/NotepadMacCore"
+            path: "Sources/NotepadMacCore",
+            exclude: ["Extensions/pro-themes/README.md"]
         ),
         .executableTarget(
             name: "NotepadMac",

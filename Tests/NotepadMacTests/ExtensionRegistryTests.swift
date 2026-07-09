@@ -94,6 +94,7 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertTrue(catalog.extensions.contains { $0.id == "markdown-tools" && $0.kind == .markdownTools })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "encoding-line-endings" && $0.kind == .encodingLineEndings })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "focus-mode" && $0.kind == .focusMode })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "title-case-command" && $0.kind == .textCommand })
         XCTAssertEqual(Set(catalog.extensions.map(\.id)).count, catalog.extensions.count)
     }
 
@@ -155,6 +156,7 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(catalog.search(matching: "semantic").map(\.id), ["ai-smart-search"])
         XCTAssertEqual(catalog.search(matching: "refactor").map(\.id), ["ai-code-refactor"])
         XCTAssertEqual(catalog.search(matching: "theme").map(\.id), ["pro-themes"])
+        XCTAssertEqual(catalog.search(matching: "title case").map(\.id), ["title-case-command"])
         XCTAssertTrue(catalog.search(matching: "OPEN").map(\.id).contains("open-documents"))
         XCTAssertEqual(catalog.search(matching: "").map(\.id), catalog.extensions.map(\.id))
     }
@@ -503,6 +505,16 @@ final class ExtensionRegistryTests: XCTestCase {
         installed.activate("open-documents")
         XCTAssertTrue(installed.isInstalled("open-documents"))
         XCTAssertTrue(installed.isActive("open-documents"))
+    }
+
+    func testInstalledExtensionsUpdatePreservesInactiveState() {
+        var installed = InstalledExtensions(installedIDs: ["open-documents"])
+        installed.deactivate("open-documents")
+
+        installed.update("open-documents")
+
+        XCTAssertTrue(installed.isInstalled("open-documents"))
+        XCTAssertFalse(installed.isActive("open-documents"))
     }
 
     func testInstalledExtensionsDecodesLegacyStateWithoutDeactivatedIDs() throws {
