@@ -18,6 +18,96 @@ public struct AIAgentConfiguration: Codable, Sendable, Equatable {
     }
 }
 
+public struct AIAgentProviderPreset: Sendable, Equatable {
+    public let title: String
+    public let summary: String
+    public let requiresToken: Bool
+    public let configuration: AIAgentConfiguration
+
+    public init(title: String, summary: String, requiresToken: Bool, configuration: AIAgentConfiguration) {
+        self.title = title
+        self.summary = summary
+        self.requiresToken = requiresToken
+        self.configuration = configuration
+    }
+}
+
+public extension AIAgentProviderPreset {
+    static let localOllama = AIAgentProviderPreset(
+        title: "Local Ollama",
+        summary: "Free local models. No API token.",
+        requiresToken: false,
+        configuration: AIAgentConfiguration(
+            endpointURL: URL(string: "http://localhost:11434/v1/chat/completions")!,
+            modelName: "llama3.2",
+            apiToken: nil,
+            responseMode: .openAICompatibleJSON
+        )
+    )
+
+    static let openRouterFreeModels = AIAgentProviderPreset(
+        title: "OpenRouter Free Models",
+        summary: "Free model catalog with an OpenRouter token.",
+        requiresToken: true,
+        configuration: AIAgentConfiguration(
+            endpointURL: URL(string: "https://openrouter.ai/api/v1/chat/completions")!,
+            modelName: "deepseek/deepseek-r1-0528:free",
+            apiToken: nil,
+            responseMode: .openAICompatibleJSON
+        )
+    )
+
+    static let groqFreeTier = AIAgentProviderPreset(
+        title: "Groq Free Tier",
+        summary: "Fast free-tier hosted inference with a Groq token.",
+        requiresToken: true,
+        configuration: AIAgentConfiguration(
+            endpointURL: URL(string: "https://api.groq.com/openai/v1/chat/completions")!,
+            modelName: "llama-3.3-70b-versatile",
+            apiToken: nil,
+            responseMode: .openAICompatibleJSON
+        )
+    )
+
+    static let googleGeminiFreeTier = AIAgentProviderPreset(
+        title: "Google Gemini Free Tier",
+        summary: "Gemini API free tier with a Google AI Studio token.",
+        requiresToken: true,
+        configuration: AIAgentConfiguration(
+            endpointURL: URL(string: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions")!,
+            modelName: "gemini-3.5-flash",
+            apiToken: nil,
+            responseMode: .openAICompatibleJSON
+        )
+    )
+
+    static let openAI = AIAgentProviderPreset(
+        title: "OpenAI",
+        summary: "OpenAI API with a project API token.",
+        requiresToken: true,
+        configuration: AIAgentConfiguration(
+            endpointURL: URL(string: "https://api.openai.com/v1/chat/completions")!,
+            modelName: "gpt-4o-mini",
+            apiToken: nil,
+            responseMode: .openAICompatibleJSON
+        )
+    )
+
+    static let remoteFreeTierPresets: [AIAgentProviderPreset] = [
+        .openRouterFreeModels,
+        .groqFreeTier,
+        .googleGeminiFreeTier
+    ]
+
+    static let settingsPresets: [AIAgentProviderPreset] = [
+        .localOllama,
+        .openRouterFreeModels,
+        .groqFreeTier,
+        .googleGeminiFreeTier,
+        .openAI
+    ]
+}
+
 public enum AITextResultDisposition: String, Codable, Sendable, Equatable {
     case openDocument
     case previewDocument

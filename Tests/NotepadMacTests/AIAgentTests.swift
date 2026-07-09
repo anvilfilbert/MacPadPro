@@ -89,6 +89,28 @@ final class AIAgentTests: XCTestCase {
         XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
     }
 
+    func testProviderPresetsIncludeNoTokenLocalOllama() {
+        let preset = AIAgentProviderPreset.localOllama
+
+        XCTAssertEqual(preset.title, "Local Ollama")
+        XCTAssertEqual(preset.configuration.endpointURL.absoluteString, "http://localhost:11434/v1/chat/completions")
+        XCTAssertEqual(preset.configuration.modelName, "llama3.2")
+        XCTAssertNil(preset.configuration.apiToken)
+        XCTAssertFalse(preset.requiresToken)
+    }
+
+    func testProviderPresetsIncludeFreeTierRemoteOpenAICompatibleOptions() {
+        let presets = AIAgentProviderPreset.remoteFreeTierPresets
+
+        XCTAssertEqual(presets.map(\.title), ["OpenRouter Free Models", "Groq Free Tier", "Google Gemini Free Tier"])
+        XCTAssertTrue(presets.allSatisfy(\.requiresToken))
+        XCTAssertEqual(presets.map { $0.configuration.endpointURL.absoluteString }, [
+            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        ])
+    }
+
     func testClientReportsAgentErrorMessageFromOpenAICompatibleErrorObject() throws {
         let data = """
         {

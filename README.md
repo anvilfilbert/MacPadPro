@@ -35,7 +35,15 @@ Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
 The registry currently owns built-in document browsers, themes, language definitions, text commands, code formatters, clipboard tools, and AI extension commands.
 Language definitions also drive editor syntax coloring so a recognized PHP, C, C++, JavaScript, TypeScript, Java, CSS, or Objective-C++ file gets code-aware colors while remaining a plain-text document on disk.
 
-AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials, and AI calls are only made from explicit user actions.
+AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials, and AI calls are only made from explicit user actions. `Extensions > AI Agent Settings...` includes provider presets:
+
+- Local Ollama: free local models, no API token
+- OpenRouter Free Models: hosted free-model catalog, OpenRouter token required
+- Groq Free Tier: hosted free-tier inference, Groq token required
+- Google Gemini Free Tier: Gemini API free tier, Google AI Studio token required
+- OpenAI: OpenAI API, OpenAI API token required
+
+Public hosted AI endpoints normally require tokens even for free tiers. The no-token option is local Ollama.
 
 Downloadable extensions are represented through `ExtensionCatalog`.
 Each extension has a unique id, description, version, type, and download URL so users can download and install extensions one by one as `.macpadproext` packages.
