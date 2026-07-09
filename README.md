@@ -5,14 +5,14 @@
 <h1 align="center">MacPad Pro</h1>
 
 <p align="center">
-  Experimental extension-friendly macOS plain-text editor with downloadable Pro extensions.
+  Extension-friendly macOS plain-text editor with downloadable Pro extensions.
 </p>
 
 <p align="center">
   <img src="Assets/MacPadPro-Preview.png" alt="MacPad Pro editor and extension manager preview" width="894">
 </p>
 
-MacPad Pro is the experimental extension-friendly edition of [MacPad](https://github.com/anvilfilbert/MacPad). MacPad stays small and Notepad-like. MacPad Pro is where optional themes, tools, formatters, panels, and AI-agent workflows can grow without changing the simple app.
+MacPad Pro is the extension-friendly edition of [MacPad](https://github.com/anvilfilbert/MacPad). MacPad stays small and Notepad-like. MacPad Pro is where optional themes, tools, formatters, panels, and AI-agent workflows can grow without changing the simple app.
 
 ## Features
 
