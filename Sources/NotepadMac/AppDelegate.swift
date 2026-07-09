@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let sessionDefaultsKey = "MacPadPro.SessionState.v1"
     private let installedExtensionsDefaultsKey = "MacPadPro.InstalledExtensions.v1"
     private let clipboardSlotsDefaultsKey = "MacPadPro.ClipboardSlots.v1"
+    private let clipboardSnippetsDefaultsKey = "MacPadPro.ClipboardSnippets.v1"
     private let aiAgentSettingsDefaultsKey = "MacPadPro.AIAgentSettings.v1"
     private let backupSnapshotsDefaultsKey = "MacPadPro.BackupSnapshots.v1"
     private let aiAgentKeychainService = "local.macpadpro.ai-agent"
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let extensionPackageDownloader = ExtensionPackageDownloader()
     private var installedExtensions = InstalledExtensions.bundledDefault
     private var clipboardSlots = ClipboardSlotStore(slotCount: 10)
+    private var clipboardSnippetStore = ClipboardSnippetStore(recent: [], pinned: [])
     private var windows: [EditorWindowController] = []
     private var documentBrowserController: DocumentBrowserWindowController?
     private var extensionManagerController: ExtensionManagerWindowController?
@@ -24,8 +26,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var markdownPreviewController: MarkdownPreviewWindowController?
     private var statisticsController: TextReportWindowController?
     private var diffController: TextReportWindowController?
-    private var versionHistoryController: TextReportWindowController?
-    private var clipboardSnippetsController: TextReportWindowController?
+    private var versionHistoryController: VersionHistoryWindowController?
+    private var clipboardSnippetsController: ClipboardSnippetsWindowController?
     private var csvTableController: TextReportWindowController?
     private var encodingController: TextReportWindowController?
     private var fileOutlineController: FileOutlineWindowController?
@@ -39,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWindow.allowsAutomaticWindowTabbing = false
         installedExtensions = loadInstalledExtensions()
         clipboardSlots = loadClipboardSlots()
+        clipboardSnippetStore = loadClipboardSnippetStore()
         rebuildMainMenu()
         if !restorePreviousSession() {
             openNewDocument(nil)
@@ -116,6 +119,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.saveSession()
             self?.refreshDocumentBrowser()
             self?.recordAutoBackupSnapshot(for: controller)
+            self?.refreshMarkdownPreview(for: controller)
+            self?.refreshFileOutline(for: controller)
         }
         return controller
     }
@@ -346,22 +351,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard extensionRegistry.autoBackups.contains(where: { $0.id == sender.representedObject as? String }),
               let controller = keyWindowController else { return }
         recordAutoBackupSnapshot(for: controller)
-        versionHistoryController = showReport(
-            controller: versionHistoryController,
-            title: "Version History",
-            text: backupSnapshotReport(),
-            onClose: { [weak self] in self?.versionHistoryController = nil }
+        let historyController = versionHistoryController ?? VersionHistoryWindowController(
+            items: versionHistoryItems(),
+            restore: { [weak self] id in
+                self?.restoreBackupSnapshot(id: id)
+            },
+            copy: { [weak self] id in
+                self?.copyBackupSnapshot(id: id)
+            }
         )
+        historyController.onClose = { [weak self] in
+            self?.versionHistoryController = nil
+        }
+        versionHistoryController = historyController
+        historyController.update(items: versionHistoryItems())
+        historyController.showWindow(nil)
+        historyController.window?.makeKeyAndOrderFront(nil)
     }
 
     @objc func showClipboardSnippets(_ sender: NSMenuItem) {
         guard extensionRegistry.clipboardSnippets.contains(where: { $0.id == sender.representedObject as? String }) else { return }
-        clipboardSnippetsController = showReport(
-            controller: clipboardSnippetsController,
-            title: "Clipboard & Snippets",
-            text: clipboardSnippetsReport(),
-            onClose: { [weak self] in self?.clipboardSnippetsController = nil }
+        captureCurrentClipboardSnippet()
+        let controller = clipboardSnippetsController ?? ClipboardSnippetsWindowController(
+            store: clipboardSnippetStore,
+            captureClipboard: { [weak self] in
+                self?.captureCurrentClipboardSnippet()
+                return self?.clipboardSnippetStore ?? ClipboardSnippetStore(recent: [], pinned: [])
+            },
+            pinSnippet: { [weak self] id, name in
+                self?.clipboardSnippetStore.pin(recentID: id, name: name)
+                self?.saveClipboardSnippetStore()
+                return self?.clipboardSnippetStore ?? ClipboardSnippetStore(recent: [], pinned: [])
+            },
+            renameSnippet: { [weak self] id, name in
+                self?.clipboardSnippetStore.renamePinned(id: id, name: name)
+                self?.saveClipboardSnippetStore()
+                return self?.clipboardSnippetStore ?? ClipboardSnippetStore(recent: [], pinned: [])
+            },
+            deleteSnippet: { [weak self] id in
+                self?.clipboardSnippetStore.deletePinned(id: id)
+                self?.saveClipboardSnippetStore()
+                return self?.clipboardSnippetStore ?? ClipboardSnippetStore(recent: [], pinned: [])
+            },
+            insertSnippet: { [weak self] content in
+                self?.keyWindowController?.insertText(content)
+            }
         )
+        controller.onClose = { [weak self] in
+            self?.clipboardSnippetsController = nil
+        }
+        clipboardSnippetsController = controller
+        controller.update(store: clipboardSnippetStore)
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
     }
 
     @objc func showFileOutline(_ sender: NSMenuItem) {
@@ -553,16 +595,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .joined(separator: "\n")
     }
 
-    private func clipboardSnippetsReport() -> String {
-        let currentClipboard = NSPasteboard.general.string(forType: .string) ?? ""
-        let currentSection = currentClipboard.isEmpty ? "Current clipboard: empty" : "Current clipboard:\n\(currentClipboard)"
-        let slots = clipboardSlots.slots.map { slot -> String in
-            let content = slot.content ?? ""
-            return content.isEmpty ? "Slot \(slot.number): empty" : "Slot \(slot.number): \(content)"
-        }
-        return ([currentSection, "", "Pinned snippets / saved slots:"] + slots).joined(separator: "\n")
-    }
-
     private func recordAutoBackupSnapshot(for controller: EditorWindowController?) {
         guard extensionRegistry.autoBackups.isEmpty == false,
               let controller,
@@ -585,24 +617,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         saveBackupSnapshots(snapshots)
     }
 
-    private func backupSnapshotReport() -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .medium
-        let snapshots = loadBackupSnapshots()
-        guard !snapshots.isEmpty else { return "No local snapshots yet." }
-        return snapshots
-            .map { snapshot in
-                let preview = snapshot.text
-                    .split(separator: "\n", omittingEmptySubsequences: false)
-                    .prefix(4)
-                    .joined(separator: "\n")
-                return """
-                \(formatter.string(from: snapshot.createdAt)) - \(snapshot.title)
-                \(preview)
-                """
-            }
-            .joined(separator: "\n\n---\n\n")
+    private func versionHistoryItems() -> [VersionHistoryItem] {
+        loadBackupSnapshots().map { snapshot in
+            VersionHistoryItem(
+                id: snapshot.id,
+                title: snapshot.title,
+                createdAt: snapshot.createdAt,
+                preview: snapshot.text.split(separator: "\n", omittingEmptySubsequences: false).prefix(4).joined(separator: "\n"),
+                content: snapshot.text
+            )
+        }
+    }
+
+    private func restoreBackupSnapshot(id: String) {
+        guard let snapshot = loadBackupSnapshots().first(where: { $0.id == id }) else { return }
+        keyWindowController?.loadGeneratedText(snapshot.text)
+    }
+
+    private func copyBackupSnapshot(id: String) {
+        guard let snapshot = loadBackupSnapshots().first(where: { $0.id == id }) else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(snapshot.text, forType: .string)
     }
 
     private func loadBackupSnapshots() -> [BackupSnapshot] {
@@ -705,6 +740,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         documentBrowserController?.refresh()
     }
 
+    private func refreshMarkdownPreview(for controller: EditorWindowController?) {
+        guard let controller,
+              markdownPreviewController != nil,
+              extensionRegistry.markdownPreviews.isEmpty == false else { return }
+        markdownPreviewController?.update(html: MarkdownPreviewRenderer.html(for: controller.selectedOrDocumentText))
+    }
+
+    private func refreshFileOutline(for controller: EditorWindowController?) {
+        guard let controller,
+              fileOutlineController != nil,
+              extensionRegistry.fileOutlines.isEmpty == false else { return }
+        fileOutlineController?.update(items: FileOutlineParser.items(for: controller.documentText, languageID: controller.currentLanguageID))
+    }
+
     private func loadInstalledExtensions() -> InstalledExtensions {
         guard let data = UserDefaults.standard.data(forKey: installedExtensionsDefaultsKey),
               let installed = try? JSONDecoder().decode(InstalledExtensions.self, from: data) else {
@@ -731,6 +780,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let data = try? JSONEncoder().encode(clipboardSlots) {
             UserDefaults.standard.set(data, forKey: clipboardSlotsDefaultsKey)
         }
+    }
+
+    private func loadClipboardSnippetStore() -> ClipboardSnippetStore {
+        guard let data = UserDefaults.standard.data(forKey: clipboardSnippetsDefaultsKey),
+              let store = try? JSONDecoder().decode(ClipboardSnippetStore.self, from: data) else {
+            return ClipboardSnippetStore(recent: [], pinned: [])
+        }
+        return store
+    }
+
+    private func saveClipboardSnippetStore() {
+        if let data = try? JSONEncoder().encode(clipboardSnippetStore) {
+            UserDefaults.standard.set(data, forKey: clipboardSnippetsDefaultsKey)
+        }
+    }
+
+    private func captureCurrentClipboardSnippet() {
+        guard let text = NSPasteboard.general.string(forType: .string) else { return }
+        clipboardSnippetStore.captureRecent(text)
+        saveClipboardSnippetStore()
     }
 
     private func loadAIAgentConfiguration() -> AIAgentConfiguration? {
