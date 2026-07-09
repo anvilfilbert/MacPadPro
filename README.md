@@ -14,8 +14,6 @@
 
 MacPad Pro is the experimental extension-friendly edition of [MacPad](https://github.com/anvilfilbert/MacPad). MacPad stays small and Notepad-like. MacPad Pro is where optional themes, tools, formatters, panels, and AI-agent workflows can grow without changing the simple app.
 
-Keywords: macOS, Swift, AppKit, plain text editor, Notepad, Notepad for Mac, Markdown editor, code editor, syntax highlighting, extensions, plugins, downloadable extensions, local-first, AI agent, Ollama, OpenRouter, clipboard snippets, document tools.
-
 ## Features
 
 - Plain-text editing with tabs, windows, find/replace, zoom, word wrap, status bar, and file save/open support.
