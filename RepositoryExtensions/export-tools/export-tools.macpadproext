@@ -1,0 +1,7 @@
+{
+  "id": "export-tools",
+  "title": "Export Tools",
+  "description": "Export the current document as PDF, HTML, Markdown, or RTF where practical.",
+  "version": "1.0.0",
+  "kind": "exportTools"
+}

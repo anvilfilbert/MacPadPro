@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let installedExtensionsDefaultsKey = "MacPadPro.InstalledExtensions.v1"
     private let clipboardSlotsDefaultsKey = "MacPadPro.ClipboardSlots.v1"
     private let aiAgentSettingsDefaultsKey = "MacPadPro.AIAgentSettings.v1"
+    private let backupSnapshotsDefaultsKey = "MacPadPro.BackupSnapshots.v1"
     private let aiAgentKeychainService = "local.macpadpro.ai-agent"
     private let aiAgentKeychainAccount = "api-token"
     private var extensionCatalog = ExtensionCatalog.default
@@ -20,6 +21,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var extensionManagerController: ExtensionManagerWindowController?
     private var aiAgentSettingsController: AIAgentSettingsWindowController?
     private var aiSmartSearchController: AISmartSearchWindowController?
+    private var markdownPreviewController: MarkdownPreviewWindowController?
+    private var statisticsController: TextReportWindowController?
+    private var diffController: TextReportWindowController?
+    private var versionHistoryController: TextReportWindowController?
+    private var clipboardSnippetsController: TextReportWindowController?
+    private var csvTableController: TextReportWindowController?
+    private var encodingController: TextReportWindowController?
+    private var fileOutlineController: FileOutlineWindowController?
     private var isRestoringSession = false
 
     private var extensionRegistry: ExtensionRegistry {
@@ -106,6 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onStateChange = { [weak self] in
             self?.saveSession()
             self?.refreshDocumentBrowser()
+            self?.recordAutoBackupSnapshot(for: controller)
         }
         return controller
     }
@@ -250,6 +260,177 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardSlots.clearAll()
         saveClipboardSlots()
     }
+    @objc func showMarkdownPreview(_ sender: NSMenuItem) {
+        guard extensionRegistry.markdownPreviews.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        let html = MarkdownPreviewRenderer.html(for: controller.selectedOrDocumentText)
+        let previewController = markdownPreviewController ?? MarkdownPreviewWindowController(html: html)
+        previewController.onClose = { [weak self] in
+            self?.markdownPreviewController = nil
+        }
+        markdownPreviewController = previewController
+        previewController.update(html: html)
+        previewController.showWindow(nil)
+        previewController.window?.makeKeyAndOrderFront(nil)
+    }
+
+    @objc func exportDocument(_ sender: NSMenuItem) {
+        guard extensionRegistry.exportTools.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        let alert = NSAlert()
+        alert.messageText = "Export As"
+        alert.informativeText = "Choose an export format."
+        alert.addButton(withTitle: "PDF")
+        alert.addButton(withTitle: "HTML")
+        alert.addButton(withTitle: "Markdown")
+        alert.addButton(withTitle: "RTF")
+        alert.addButton(withTitle: "Cancel")
+
+        let response = alert.runModal()
+        guard response.rawValue <= NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + 3 else { return }
+
+        let exportFormat = ExportFormat(response: response)
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "\(controller.documentDisplayName).\(exportFormat.fileExtension)"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            try exportFormat.write(controller: controller, to: url)
+        } catch {
+            showError("Export failed.", detail: error.localizedDescription)
+        }
+    }
+
+    @objc func showDocumentStatistics(_ sender: NSMenuItem) {
+        guard extensionRegistry.documentStatistics.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        let report = statisticsReport(for: controller.documentStatistics())
+        statisticsController = showReport(
+            controller: statisticsController,
+            title: "Document Statistics",
+            text: report,
+            onClose: { [weak self] in self?.statisticsController = nil }
+        )
+    }
+
+    @objc func showDiffViewer(_ sender: NSMenuItem) {
+        guard extensionRegistry.diffViewers.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        let alert = NSAlert()
+        alert.messageText = "Compare"
+        alert.informativeText = "Compare the current document against clipboard text or another file."
+        alert.addButton(withTitle: "Clipboard")
+        alert.addButton(withTitle: "Choose File")
+        alert.addButton(withTitle: "Cancel")
+
+        let comparisonText: String?
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            comparisonText = NSPasteboard.general.string(forType: .string)
+        case .alertSecondButtonReturn:
+            comparisonText = readComparisonFile()
+        default:
+            comparisonText = nil
+        }
+        guard let comparisonText else { return }
+
+        diffController = showReport(
+            controller: diffController,
+            title: "Diff Viewer",
+            text: diffReport(original: comparisonText, changed: controller.documentText),
+            onClose: { [weak self] in self?.diffController = nil }
+        )
+    }
+
+    @objc func showVersionHistory(_ sender: NSMenuItem) {
+        guard extensionRegistry.autoBackups.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        recordAutoBackupSnapshot(for: controller)
+        versionHistoryController = showReport(
+            controller: versionHistoryController,
+            title: "Version History",
+            text: backupSnapshotReport(),
+            onClose: { [weak self] in self?.versionHistoryController = nil }
+        )
+    }
+
+    @objc func showClipboardSnippets(_ sender: NSMenuItem) {
+        guard extensionRegistry.clipboardSnippets.contains(where: { $0.id == sender.representedObject as? String }) else { return }
+        clipboardSnippetsController = showReport(
+            controller: clipboardSnippetsController,
+            title: "Clipboard & Snippets",
+            text: clipboardSnippetsReport(),
+            onClose: { [weak self] in self?.clipboardSnippetsController = nil }
+        )
+    }
+
+    @objc func showFileOutline(_ sender: NSMenuItem) {
+        guard extensionRegistry.fileOutlines.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        let items = FileOutlineParser.items(for: controller.documentText, languageID: controller.currentLanguageID)
+        let outlineController = fileOutlineController ?? FileOutlineWindowController(
+            items: items,
+            openLine: { [weak self] line in
+                self?.keyWindowController?.jumpToLine(line)
+            }
+        )
+        outlineController.onClose = { [weak self] in
+            self?.fileOutlineController = nil
+        }
+        fileOutlineController = outlineController
+        outlineController.update(items: items)
+        outlineController.showWindow(nil)
+        outlineController.window?.makeKeyAndOrderFront(nil)
+    }
+
+    @objc func showCSVTablePreview(_ sender: NSMenuItem) {
+        guard extensionRegistry.csvTableViewers.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        do {
+            let text = controller.selectedOrDocumentText
+            let delimiter: Character = text.contains("\t") ? "\t" : ","
+            let table = try DelimitedTextTableParser.parse(text, delimiter: delimiter)
+            csvTableController = showReport(
+                controller: csvTableController,
+                title: "Table Preview",
+                text: tableReport(table),
+                onClose: { [weak self] in self?.csvTableController = nil }
+            )
+        } catch {
+            showError("Could not preview table.", detail: error.localizedDescription)
+        }
+    }
+
+    @objc func runMarkdownTool(_ sender: NSMenuItem) {
+        guard extensionRegistry.markdownTools.isEmpty == false,
+              let toolID = sender.representedObject as? String else { return }
+        keyWindowController?.runMarkdownTool(id: toolID)
+    }
+
+    @objc func showEncodingLineEndings(_ sender: NSMenuItem) {
+        guard extensionRegistry.encodingLineEndings.contains(where: { $0.id == sender.representedObject as? String }),
+              let controller = keyWindowController else { return }
+        let detected = LineEnding.detected(in: controller.documentText)
+        encodingController = showReport(
+            controller: encodingController,
+            title: "Encoding & Line Endings",
+            text: "Encoding: UTF-8\nLine endings: \(detected.statusLabel)",
+            onClose: { [weak self] in self?.encodingController = nil }
+        )
+    }
+
+    @objc func convertLineEndings(_ sender: NSMenuItem) {
+        guard extensionRegistry.encodingLineEndings.isEmpty == false,
+              let rawValue = sender.representedObject as? String,
+              let lineEnding = LineEnding(rawValue: rawValue) else { return }
+        keyWindowController?.convertLineEndings(to: lineEnding)
+    }
+
+    @objc func toggleFocusMode(_ sender: NSMenuItem) {
+        guard extensionRegistry.focusModes.contains(where: { $0.id == sender.representedObject as? String }) else { return }
+        keyWindowController?.toggleFocusMode()
+    }
+
     @objc func showExtensionManager(_ sender: Any?) {
         let controller = extensionManagerController ?? ExtensionManagerWindowController(
             catalog: extensionCatalog,
@@ -295,6 +476,147 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.refresh()
         controller.showWindow(nil)
         controller.window?.makeKeyAndOrderFront(nil)
+    }
+
+    private func showReport(
+        controller: TextReportWindowController?,
+        title: String,
+        text: String,
+        onClose: @escaping () -> Void
+    ) -> TextReportWindowController {
+        let reportController = controller ?? TextReportWindowController(title: title, text: text)
+        reportController.onClose = onClose
+        reportController.update(title: title, text: text)
+        reportController.showWindow(nil)
+        reportController.window?.makeKeyAndOrderFront(nil)
+        return reportController
+    }
+
+    private func statisticsReport(for statistics: DocumentStatistics) -> String {
+        """
+        Words: \(statistics.wordCount)
+        Characters: \(statistics.characterCount)
+        Lines: \(statistics.lineCount)
+        Selection words: \(statistics.selectionWordCount)
+        Selection characters: \(statistics.selectionCharacterCount)
+        Reading time: \(statistics.readingTimeMinutes) min
+        """
+    }
+
+    private func readComparisonFile() -> String? {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.plainText, .text, .data]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        return try? String(contentsOf: url, encoding: .utf8)
+    }
+
+    private func diffReport(original: String, changed: String) -> String {
+        let originalLines = original.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let changedLines = changed.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let maxCount = max(originalLines.count, changedLines.count)
+        var lines: [String] = []
+
+        for index in 0..<maxCount {
+            let oldLine = index < originalLines.count ? originalLines[index] : nil
+            let newLine = index < changedLines.count ? changedLines[index] : nil
+            if oldLine == newLine {
+                lines.append("  \(oldLine ?? "")")
+            } else {
+                if let oldLine {
+                    lines.append("- \(oldLine)")
+                }
+                if let newLine {
+                    lines.append("+ \(newLine)")
+                }
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func tableReport(_ table: DelimitedTextTable) -> String {
+        let rows = [table.headers] + table.rows
+        let columnCount = rows.map(\.count).max() ?? 0
+        let widths = (0..<columnCount).map { column in
+            rows.map { row in row.indices.contains(column) ? row[column].count : 0 }.max() ?? 0
+        }
+        return rows
+            .map { row in
+                (0..<columnCount)
+                    .map { column in
+                        let value = row.indices.contains(column) ? row[column] : ""
+                        return value.padding(toLength: widths[column], withPad: " ", startingAt: 0)
+                    }
+                    .joined(separator: "  ")
+            }
+            .joined(separator: "\n")
+    }
+
+    private func clipboardSnippetsReport() -> String {
+        let currentClipboard = NSPasteboard.general.string(forType: .string) ?? ""
+        let currentSection = currentClipboard.isEmpty ? "Current clipboard: empty" : "Current clipboard:\n\(currentClipboard)"
+        let slots = clipboardSlots.slots.map { slot -> String in
+            let content = slot.content ?? ""
+            return content.isEmpty ? "Slot \(slot.number): empty" : "Slot \(slot.number): \(content)"
+        }
+        return ([currentSection, "", "Pinned snippets / saved slots:"] + slots).joined(separator: "\n")
+    }
+
+    private func recordAutoBackupSnapshot(for controller: EditorWindowController?) {
+        guard extensionRegistry.autoBackups.isEmpty == false,
+              let controller,
+              !controller.documentText.isEmpty else { return }
+        var snapshots = loadBackupSnapshots()
+        if snapshots.first?.text == controller.documentText,
+           snapshots.first?.title == controller.documentDisplayName {
+            return
+        }
+        snapshots.insert(
+            BackupSnapshot(
+                id: UUID().uuidString,
+                title: controller.documentDisplayName,
+                createdAt: Date(),
+                text: controller.documentText
+            ),
+            at: 0
+        )
+        snapshots = Array(snapshots.prefix(20))
+        saveBackupSnapshots(snapshots)
+    }
+
+    private func backupSnapshotReport() -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        let snapshots = loadBackupSnapshots()
+        guard !snapshots.isEmpty else { return "No local snapshots yet." }
+        return snapshots
+            .map { snapshot in
+                let preview = snapshot.text
+                    .split(separator: "\n", omittingEmptySubsequences: false)
+                    .prefix(4)
+                    .joined(separator: "\n")
+                return """
+                \(formatter.string(from: snapshot.createdAt)) - \(snapshot.title)
+                \(preview)
+                """
+            }
+            .joined(separator: "\n\n---\n\n")
+    }
+
+    private func loadBackupSnapshots() -> [BackupSnapshot] {
+        guard let data = UserDefaults.standard.data(forKey: backupSnapshotsDefaultsKey),
+              let snapshots = try? JSONDecoder().decode([BackupSnapshot].self, from: data) else {
+            return []
+        }
+        return snapshots
+    }
+
+    private func saveBackupSnapshots(_ snapshots: [BackupSnapshot]) {
+        if let data = try? JSONEncoder().encode(snapshots) {
+            UserDefaults.standard.set(data, forKey: backupSnapshotsDefaultsKey)
+        }
     }
 
     private func restorePreviousSession() -> Bool {
@@ -613,4 +935,58 @@ private struct StoredAIAgentSettings: Codable {
     let endpointURLString: String
     let modelName: String
     let responseMode: AIAgentResponseMode
+}
+
+private struct BackupSnapshot: Codable {
+    let id: String
+    let title: String
+    let createdAt: Date
+    let text: String
+}
+
+private enum ExportFormat {
+    case pdf
+    case html
+    case markdown
+    case rtf
+
+    init(response: NSApplication.ModalResponse) {
+        switch response {
+        case .alertFirstButtonReturn:
+            self = .pdf
+        case .alertSecondButtonReturn:
+            self = .html
+        case .alertThirdButtonReturn:
+            self = .markdown
+        default:
+            self = .rtf
+        }
+    }
+
+    var fileExtension: String {
+        switch self {
+        case .pdf:
+            return "pdf"
+        case .html:
+            return "html"
+        case .markdown:
+            return "md"
+        case .rtf:
+            return "rtf"
+        }
+    }
+
+    @MainActor
+    func write(controller: EditorWindowController, to url: URL) throws {
+        switch self {
+        case .pdf:
+            try controller.exportPDF(to: url)
+        case .html:
+            try controller.exportHTML(to: url)
+        case .markdown:
+            try controller.exportPlainText(to: url)
+        case .rtf:
+            try controller.exportRTF(to: url)
+        }
+    }
 }

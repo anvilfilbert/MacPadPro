@@ -56,6 +56,28 @@ public struct ClipboardExtension: Sendable {
     public let slotCount: Int
 }
 
+public struct ExtensionMenuAction: Sendable {
+    public let id: String
+    public let title: String
+    public let opensDetachedWindow: Bool
+    public let isResizable: Bool
+    public let isClosable: Bool
+
+    public init(
+        id: String,
+        title: String,
+        opensDetachedWindow: Bool,
+        isResizable: Bool,
+        isClosable: Bool
+    ) {
+        self.id = id
+        self.title = title
+        self.opensDetachedWindow = opensDetachedWindow
+        self.isResizable = isResizable
+        self.isClosable = isClosable
+    }
+}
+
 public struct DocumentBrowserItem: Sendable, Equatable {
     public let id: String
     public let title: String
@@ -77,6 +99,17 @@ public enum ExtensionKind: String, Codable, Sendable {
     case clipboard
     case aiTextTask
     case aiSmartSearch
+    case markdownPreview
+    case exportTools
+    case documentStatistics
+    case diffViewer
+    case autoBackup
+    case clipboardSnippets
+    case fileOutline
+    case csvTableViewer
+    case markdownTools
+    case encodingLineEndings
+    case focusMode
 }
 
 public struct DownloadableExtension: Codable, Sendable, Equatable {
@@ -296,6 +329,17 @@ public struct ExtensionRegistry: Sendable {
     public let clipboards: [ClipboardExtension]
     public let aiTextTasks: [AITextTask]
     public let aiSmartSearches: [AISmartSearchExtension]
+    public let markdownPreviews: [ExtensionMenuAction]
+    public let exportTools: [ExtensionMenuAction]
+    public let documentStatistics: [ExtensionMenuAction]
+    public let diffViewers: [ExtensionMenuAction]
+    public let autoBackups: [ExtensionMenuAction]
+    public let clipboardSnippets: [ExtensionMenuAction]
+    public let fileOutlines: [ExtensionMenuAction]
+    public let csvTableViewers: [ExtensionMenuAction]
+    public let markdownTools: [ExtensionMenuAction]
+    public let encodingLineEndings: [ExtensionMenuAction]
+    public let focusModes: [ExtensionMenuAction]
 
     public static let `default` = loaded(installedExtensions: .bundledDefault)
 
@@ -314,6 +358,17 @@ public struct ExtensionRegistry: Sendable {
             + (installedExtensions.isActive(AICodeRefactorExtensionPackage.id) ? AICodeRefactorExtensionPackage.textTasks : [])
             + (installedExtensions.isActive(AIMeetingNotesExtensionPackage.id) ? AIMeetingNotesExtensionPackage.textTasks : [])
         let aiSmartSearches = installedExtensions.isActive(AISmartSearchExtensionPackage.id) ? AISmartSearchExtensionPackage.smartSearches : []
+        let markdownPreviews = installedExtensions.isActive(MarkdownPreviewExtensionPackage.id) ? MarkdownPreviewExtensionPackage.actions : []
+        let exportTools = installedExtensions.isActive(ExportToolsExtensionPackage.id) ? ExportToolsExtensionPackage.actions : []
+        let documentStatistics = installedExtensions.isActive(DocumentStatisticsExtensionPackage.id) ? DocumentStatisticsExtensionPackage.actions : []
+        let diffViewers = installedExtensions.isActive(DiffViewerExtensionPackage.id) ? DiffViewerExtensionPackage.actions : []
+        let autoBackups = installedExtensions.isActive(AutoBackupExtensionPackage.id) ? AutoBackupExtensionPackage.actions : []
+        let clipboardSnippets = installedExtensions.isActive(ClipboardSnippetsExtensionPackage.id) ? ClipboardSnippetsExtensionPackage.actions : []
+        let fileOutlines = installedExtensions.isActive(FileOutlineExtensionPackage.id) ? FileOutlineExtensionPackage.actions : []
+        let csvTableViewers = installedExtensions.isActive(CSVTableViewerExtensionPackage.id) ? CSVTableViewerExtensionPackage.actions : []
+        let markdownTools = installedExtensions.isActive(MarkdownToolsExtensionPackage.id) ? MarkdownToolsExtensionPackage.actions : []
+        let encodingLineEndings = installedExtensions.isActive(EncodingLineEndingsExtensionPackage.id) ? EncodingLineEndingsExtensionPackage.actions : []
+        let focusModes = installedExtensions.isActive(FocusModeExtensionPackage.id) ? FocusModeExtensionPackage.actions : []
 
         return ExtensionRegistry(
             themes: themes,
@@ -323,7 +378,18 @@ public struct ExtensionRegistry: Sendable {
             documentBrowsers: documentBrowsers,
             clipboards: clipboards,
             aiTextTasks: aiTextTasks,
-            aiSmartSearches: aiSmartSearches
+            aiSmartSearches: aiSmartSearches,
+            markdownPreviews: markdownPreviews,
+            exportTools: exportTools,
+            documentStatistics: documentStatistics,
+            diffViewers: diffViewers,
+            autoBackups: autoBackups,
+            clipboardSnippets: clipboardSnippets,
+            fileOutlines: fileOutlines,
+            csvTableViewers: csvTableViewers,
+            markdownTools: markdownTools,
+            encodingLineEndings: encodingLineEndings,
+            focusModes: focusModes
         )
     }
 
@@ -456,6 +522,17 @@ private enum BuiltInExtensions {
         AICodeRefactorExtensionPackage.catalogEntry,
         AIMeetingNotesExtensionPackage.catalogEntry,
         AISmartSearchExtensionPackage.catalogEntry,
-        ProThemesExtensionPackage.catalogEntry
+        ProThemesExtensionPackage.catalogEntry,
+        MarkdownPreviewExtensionPackage.catalogEntry,
+        ExportToolsExtensionPackage.catalogEntry,
+        DocumentStatisticsExtensionPackage.catalogEntry,
+        DiffViewerExtensionPackage.catalogEntry,
+        AutoBackupExtensionPackage.catalogEntry,
+        ClipboardSnippetsExtensionPackage.catalogEntry,
+        FileOutlineExtensionPackage.catalogEntry,
+        CSVTableViewerExtensionPackage.catalogEntry,
+        MarkdownToolsExtensionPackage.catalogEntry,
+        EncodingLineEndingsExtensionPackage.catalogEntry,
+        FocusModeExtensionPackage.catalogEntry
     ]
 }

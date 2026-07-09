@@ -1,0 +1,7 @@
+{
+  "id": "file-outline",
+  "title": "File Outline",
+  "description": "Show Markdown headings and simple code symbols in a detached, resizable, closable navigation panel.",
+  "version": "1.0.0",
+  "kind": "fileOutline"
+}

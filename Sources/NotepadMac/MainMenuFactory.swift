@@ -72,6 +72,138 @@ enum MainMenuFactory {
             extensionsMenu.addItem(.separator())
         }
 
+        if !extensionRegistry.markdownPreviews.isEmpty || !extensionRegistry.markdownTools.isEmpty {
+            let markdownMenu = NSMenu(title: "Markdown")
+            for preview in extensionRegistry.markdownPreviews {
+                let item = addItem(preview.title, to: markdownMenu, action: #selector(AppDelegate.showMarkdownPreview(_:)), target: target)
+                item.representedObject = preview.id
+            }
+            if !extensionRegistry.markdownPreviews.isEmpty && !extensionRegistry.markdownTools.isEmpty {
+                markdownMenu.addItem(.separator())
+            }
+            if !extensionRegistry.markdownTools.isEmpty {
+                let toolsMenu = NSMenu(title: "Tools")
+                let toggleItem = addItem("Toggle Checkbox", to: toolsMenu, action: #selector(AppDelegate.runMarkdownTool(_:)), target: target)
+                toggleItem.representedObject = "toggle-checkbox"
+                let tableItem = addItem("Insert Table", to: toolsMenu, action: #selector(AppDelegate.runMarkdownTool(_:)), target: target)
+                tableItem.representedObject = "insert-table"
+                let listItem = addItem("Format List", to: toolsMenu, action: #selector(AppDelegate.runMarkdownTool(_:)), target: target)
+                listItem.representedObject = "format-list"
+                let renumberItem = addItem("Renumber Ordered List", to: toolsMenu, action: #selector(AppDelegate.runMarkdownTool(_:)), target: target)
+                renumberItem.representedObject = "renumber-ordered-list"
+                let toolsRoot = NSMenuItem(title: "Tools", action: nil, keyEquivalent: "")
+                toolsRoot.submenu = toolsMenu
+                markdownMenu.addItem(toolsRoot)
+            }
+            let markdownRoot = NSMenuItem(title: "Markdown", action: nil, keyEquivalent: "")
+            markdownRoot.submenu = markdownMenu
+            extensionsMenu.addItem(markdownRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.exportTools.isEmpty {
+            let exportMenu = NSMenu(title: "Export")
+            for exportTool in extensionRegistry.exportTools {
+                let item = addItem(exportTool.title, to: exportMenu, action: #selector(AppDelegate.exportDocument(_:)), target: target)
+                item.representedObject = exportTool.id
+            }
+            let exportRoot = NSMenuItem(title: "Export", action: nil, keyEquivalent: "")
+            exportRoot.submenu = exportMenu
+            extensionsMenu.addItem(exportRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.documentStatistics.isEmpty || !extensionRegistry.diffViewers.isEmpty {
+            let toolsMenu = NSMenu(title: "Tools")
+            for statistics in extensionRegistry.documentStatistics {
+                let item = addItem(statistics.title, to: toolsMenu, action: #selector(AppDelegate.showDocumentStatistics(_:)), target: target)
+                item.representedObject = statistics.id
+            }
+            for diffViewer in extensionRegistry.diffViewers {
+                let item = addItem(diffViewer.title, to: toolsMenu, action: #selector(AppDelegate.showDiffViewer(_:)), target: target)
+                item.representedObject = diffViewer.id
+            }
+            let toolsRoot = NSMenuItem(title: "Tools", action: nil, keyEquivalent: "")
+            toolsRoot.submenu = toolsMenu
+            extensionsMenu.addItem(toolsRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.autoBackups.isEmpty {
+            let backupMenu = NSMenu(title: "Backup")
+            for backup in extensionRegistry.autoBackups {
+                let item = addItem(backup.title, to: backupMenu, action: #selector(AppDelegate.showVersionHistory(_:)), target: target)
+                item.representedObject = backup.id
+            }
+            let backupRoot = NSMenuItem(title: "Backup", action: nil, keyEquivalent: "")
+            backupRoot.submenu = backupMenu
+            extensionsMenu.addItem(backupRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        for clipboardSnippets in extensionRegistry.clipboardSnippets {
+            let item = addItem(clipboardSnippets.title, to: extensionsMenu, action: #selector(AppDelegate.showClipboardSnippets(_:)), target: target)
+            item.representedObject = clipboardSnippets.id
+        }
+        if !extensionRegistry.clipboardSnippets.isEmpty {
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.fileOutlines.isEmpty {
+            let navigationMenu = NSMenu(title: "Navigation")
+            for outline in extensionRegistry.fileOutlines {
+                let item = addItem(outline.title, to: navigationMenu, action: #selector(AppDelegate.showFileOutline(_:)), target: target)
+                item.representedObject = outline.id
+            }
+            let navigationRoot = NSMenuItem(title: "Navigation", action: nil, keyEquivalent: "")
+            navigationRoot.submenu = navigationMenu
+            extensionsMenu.addItem(navigationRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.csvTableViewers.isEmpty {
+            let dataMenu = NSMenu(title: "Data")
+            for tableViewer in extensionRegistry.csvTableViewers {
+                let item = addItem(tableViewer.title, to: dataMenu, action: #selector(AppDelegate.showCSVTablePreview(_:)), target: target)
+                item.representedObject = tableViewer.id
+            }
+            let dataRoot = NSMenuItem(title: "Data", action: nil, keyEquivalent: "")
+            dataRoot.submenu = dataMenu
+            extensionsMenu.addItem(dataRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.encodingLineEndings.isEmpty {
+            let textMenu = NSMenu(title: "Text")
+            for encodingTool in extensionRegistry.encodingLineEndings {
+                let item = addItem(encodingTool.title, to: textMenu, action: #selector(AppDelegate.showEncodingLineEndings(_:)), target: target)
+                item.representedObject = encodingTool.id
+            }
+            textMenu.addItem(.separator())
+            let unixItem = addItem("Convert to Unix (LF)", to: textMenu, action: #selector(AppDelegate.convertLineEndings(_:)), target: target)
+            unixItem.representedObject = LineEnding.unix.rawValue
+            let windowsItem = addItem("Convert to Windows (CRLF)", to: textMenu, action: #selector(AppDelegate.convertLineEndings(_:)), target: target)
+            windowsItem.representedObject = LineEnding.windows.rawValue
+            let macItem = addItem("Convert to Classic Mac (CR)", to: textMenu, action: #selector(AppDelegate.convertLineEndings(_:)), target: target)
+            macItem.representedObject = LineEnding.classicMac.rawValue
+            let textRoot = NSMenuItem(title: "Text", action: nil, keyEquivalent: "")
+            textRoot.submenu = textMenu
+            extensionsMenu.addItem(textRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
+        if !extensionRegistry.focusModes.isEmpty {
+            let viewMenu = NSMenu(title: "View")
+            for focusMode in extensionRegistry.focusModes {
+                let item = addItem(focusMode.title, to: viewMenu, action: #selector(AppDelegate.toggleFocusMode(_:)), target: target)
+                item.representedObject = focusMode.id
+            }
+            let viewRoot = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
+            viewRoot.submenu = viewMenu
+            extensionsMenu.addItem(viewRoot)
+            extensionsMenu.addItem(.separator())
+        }
+
         for browser in extensionRegistry.documentBrowsers {
             let item = addItem(browser.title, to: extensionsMenu, action: #selector(AppDelegate.showDocumentBrowser(_:)), target: target)
             item.representedObject = browser.id

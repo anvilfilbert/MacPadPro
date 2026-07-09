@@ -1,0 +1,7 @@
+{
+  "id": "auto-backup",
+  "title": "Auto Backup / Versions",
+  "description": "Create optional local timestamped editing snapshots and browse version history.",
+  "version": "1.0.0",
+  "kind": "autoBackup"
+}

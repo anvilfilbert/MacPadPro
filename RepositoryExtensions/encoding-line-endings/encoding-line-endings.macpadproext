@@ -1,0 +1,7 @@
+{
+  "id": "encoding-line-endings",
+  "title": "Encoding / Line Ending Tools",
+  "description": "Show current text encoding and convert line endings between Unix, Windows, and classic Mac styles.",
+  "version": "1.0.0",
+  "kind": "encodingLineEndings"
+}

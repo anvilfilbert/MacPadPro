@@ -19,6 +19,17 @@ Available downloadable extensions:
 - Document Browser: detachable, resizable, and closable open-document browser
 - Pro Themes: Night, Paper, Terminal, Ocean, Forest, Sunset, Lavender, and High Contrast
 - Clipboard Slots: save and reuse text clipboard content across 10 slots
+- Markdown Preview: detached live preview for the current Markdown document or selection
+- Export Tools: export the current document as PDF, HTML, Markdown, or RTF
+- Document Statistics: detached word, character, line, selection, and reading-time report
+- Diff Viewer: compare the current document against clipboard text or another file
+- Auto Backup / Versions: local timestamped editing snapshots and version history
+- Clipboard & Snippets Manager: detached panel for recent clipboard text and saved snippets
+- File Outline: detached Markdown heading and code symbol outline with line navigation
+- CSV Table Viewer: detached CSV/TSV table preview that keeps the source text unchanged
+- Markdown Tools: checkbox, table, list formatting, and ordered-list renumbering commands
+- Encoding / Line Ending Tools: show UTF-8 status and convert Unix, Windows, and classic Mac line endings
+- Focus / Typewriter Mode: distraction-free editing toggle
 - AI extensions:
   - AI Summarizer
   - AI Code Explainer
@@ -32,7 +43,7 @@ Available downloadable extensions:
   - Pretty Print JSON
 
 Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
-The registry currently owns built-in document browsers, themes, language definitions, text commands, code formatters, clipboard tools, and AI extension commands.
+The registry currently owns built-in document browsers, themes, language definitions, text commands, code formatters, clipboard tools, AI extension commands, and optional non-AI tool panels.
 Language definitions also drive editor syntax coloring so a recognized PHP, C, C++, JavaScript, TypeScript, Java, CSS, or Objective-C++ file gets code-aware colors while remaining a plain-text document on disk.
 
 AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials, and AI calls are only made from explicit user actions. `Extensions > AI Agent Settings...` includes provider presets:
@@ -92,6 +103,17 @@ Current extension packages:
 - `Extensions/ai-meeting-notes/AIMeetingNotesExtensionPackage.swift`
 - `Extensions/ai-smart-search/AISmartSearchExtensionPackage.swift`
 - `Extensions/pro-themes/ProThemesExtensionPackage.swift`
+- `Extensions/markdown-preview/MarkdownPreviewExtensionPackage.swift`
+- `Extensions/export-tools/ExportToolsExtensionPackage.swift`
+- `Extensions/document-statistics/DocumentStatisticsExtensionPackage.swift`
+- `Extensions/diff-viewer/DiffViewerExtensionPackage.swift`
+- `Extensions/auto-backup/AutoBackupExtensionPackage.swift`
+- `Extensions/clipboard-snippets/ClipboardSnippetsExtensionPackage.swift`
+- `Extensions/file-outline/FileOutlineExtensionPackage.swift`
+- `Extensions/csv-table-viewer/CSVTableViewerExtensionPackage.swift`
+- `Extensions/markdown-tools/MarkdownToolsExtensionPackage.swift`
+- `Extensions/encoding-line-endings/EncodingLineEndingsExtensionPackage.swift`
+- `Extensions/focus-mode/FocusModeExtensionPackage.swift`
 
 User guide for plugin authors:
 

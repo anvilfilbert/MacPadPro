@@ -83,6 +83,17 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-code-refactor" && $0.kind == .aiTextTask })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-meeting-notes" && $0.kind == .aiTextTask })
         XCTAssertTrue(catalog.extensions.contains { $0.id == "ai-smart-search" && $0.kind == .aiSmartSearch })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "markdown-preview" && $0.kind == .markdownPreview })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "export-tools" && $0.kind == .exportTools })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "document-statistics" && $0.kind == .documentStatistics })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "diff-viewer" && $0.kind == .diffViewer })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "auto-backup" && $0.kind == .autoBackup })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "clipboard-snippets" && $0.kind == .clipboardSnippets })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "file-outline" && $0.kind == .fileOutline })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "csv-table-viewer" && $0.kind == .csvTableViewer })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "markdown-tools" && $0.kind == .markdownTools })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "encoding-line-endings" && $0.kind == .encodingLineEndings })
+        XCTAssertTrue(catalog.extensions.contains { $0.id == "focus-mode" && $0.kind == .focusMode })
         XCTAssertEqual(Set(catalog.extensions.map(\.id)).count, catalog.extensions.count)
     }
 
@@ -138,8 +149,9 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(catalog.search(matching: "json").map(\.id), ["json-formatter"])
         XCTAssertEqual(catalog.search(matching: "php").map(\.id), ["c-family-formatter"])
         XCTAssertEqual(catalog.search(matching: "c++").map(\.id), ["c-family-formatter"])
-        XCTAssertEqual(catalog.search(matching: "detached").map(\.id), ["open-documents"])
-        XCTAssertEqual(catalog.search(matching: "clipboard").map(\.id), ["clipboard-slots"])
+        XCTAssertTrue(catalog.search(matching: "detached").map(\.id).contains("open-documents"))
+        XCTAssertTrue(catalog.search(matching: "clipboard").map(\.id).contains("clipboard-slots"))
+        XCTAssertTrue(catalog.search(matching: "clipboard").map(\.id).contains("clipboard-snippets"))
         XCTAssertEqual(catalog.search(matching: "semantic").map(\.id), ["ai-smart-search"])
         XCTAssertEqual(catalog.search(matching: "refactor").map(\.id), ["ai-code-refactor"])
         XCTAssertEqual(catalog.search(matching: "theme").map(\.id), ["pro-themes"])
@@ -540,6 +552,57 @@ final class ExtensionRegistryTests: XCTestCase {
 
         XCTAssertTrue(registry.clipboards.isEmpty)
         XCTAssertTrue(installed.isInstalled("clipboard-slots"))
+    }
+
+    func testRegistryLoadsNewNonAIExtensionActionsOnlyWhenInstalled() {
+        let withoutTools = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: []))
+        XCTAssertTrue(withoutTools.markdownPreviews.isEmpty)
+        XCTAssertTrue(withoutTools.exportTools.isEmpty)
+        XCTAssertTrue(withoutTools.documentStatistics.isEmpty)
+        XCTAssertTrue(withoutTools.diffViewers.isEmpty)
+        XCTAssertTrue(withoutTools.autoBackups.isEmpty)
+        XCTAssertTrue(withoutTools.clipboardSnippets.isEmpty)
+        XCTAssertTrue(withoutTools.fileOutlines.isEmpty)
+        XCTAssertTrue(withoutTools.csvTableViewers.isEmpty)
+        XCTAssertTrue(withoutTools.markdownTools.isEmpty)
+        XCTAssertTrue(withoutTools.encodingLineEndings.isEmpty)
+        XCTAssertTrue(withoutTools.focusModes.isEmpty)
+
+        let withTools = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: [
+            "markdown-preview",
+            "export-tools",
+            "document-statistics",
+            "diff-viewer",
+            "auto-backup",
+            "clipboard-snippets",
+            "file-outline",
+            "csv-table-viewer",
+            "markdown-tools",
+            "encoding-line-endings",
+            "focus-mode"
+        ]))
+
+        XCTAssertEqual(withTools.markdownPreviews.first?.title, "Preview")
+        XCTAssertEqual(withTools.exportTools.first?.title, "Export As...")
+        XCTAssertEqual(withTools.documentStatistics.first?.title, "Document Statistics")
+        XCTAssertEqual(withTools.diffViewers.first?.title, "Compare...")
+        XCTAssertEqual(withTools.autoBackups.first?.title, "Version History")
+        XCTAssertEqual(withTools.clipboardSnippets.first?.title, "Clipboard & Snippets")
+        XCTAssertEqual(withTools.fileOutlines.first?.title, "File Outline")
+        XCTAssertEqual(withTools.csvTableViewers.first?.title, "Table Preview")
+        XCTAssertEqual(withTools.markdownTools.first?.title, "Tools")
+        XCTAssertEqual(withTools.encodingLineEndings.first?.title, "Encoding & Line Endings")
+        XCTAssertEqual(withTools.focusModes.first?.title, "Focus Mode")
+    }
+
+    func testRegistryDoesNotLoadDeactivatedNewNonAIExtensionAction() {
+        var installed = InstalledExtensions(installedIDs: ["markdown-preview", "document-statistics"])
+        installed.deactivate("markdown-preview")
+
+        let registry = ExtensionRegistry.loaded(installedExtensions: installed)
+
+        XCTAssertTrue(registry.markdownPreviews.isEmpty)
+        XCTAssertEqual(registry.documentStatistics.first?.id, "document-statistics")
     }
 
     func testRegistryLoadsAITextTasksOnlyWhenInstalled() {

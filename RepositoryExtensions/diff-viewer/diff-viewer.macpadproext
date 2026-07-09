@@ -1,0 +1,7 @@
+{
+  "id": "diff-viewer",
+  "title": "Diff Viewer",
+  "description": "Compare the current document against clipboard text or another file in a detached diff window.",
+  "version": "1.0.0",
+  "kind": "diffViewer"
+}

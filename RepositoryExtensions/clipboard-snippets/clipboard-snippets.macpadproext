@@ -1,0 +1,7 @@
+{
+  "id": "clipboard-snippets",
+  "title": "Clipboard & Snippets Manager",
+  "description": "Manage recent clipboard text and pinned named snippets in a detached, resizable, closable panel.",
+  "version": "1.0.0",
+  "kind": "clipboardSnippets"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "focus-mode",
+  "title": "Focus / Typewriter Mode",
+  "description": "Add distraction-free editing with optional current-line focus and typewriter scrolling.",
+  "version": "1.0.0",
+  "kind": "focusMode"
+}

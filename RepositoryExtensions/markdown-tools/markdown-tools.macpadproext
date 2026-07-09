@@ -1,0 +1,7 @@
+{
+  "id": "markdown-tools",
+  "title": "Markdown Tools",
+  "description": "Add Markdown editing commands for checkboxes, tables, lists, and ordered-list renumbering.",
+  "version": "1.0.0",
+  "kind": "markdownTools"
+}

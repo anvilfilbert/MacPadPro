@@ -1,0 +1,7 @@
+{
+  "id": "csv-table-viewer",
+  "title": "CSV Table Viewer",
+  "description": "Preview CSV or TSV text as a readable table without changing the original plain text.",
+  "version": "1.0.0",
+  "kind": "csvTableViewer"
+}

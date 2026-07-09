@@ -1,0 +1,7 @@
+{
+  "id": "document-statistics",
+  "title": "Document Statistics",
+  "description": "Show word, character, line, selection, and reading-time statistics for the current document.",
+  "version": "1.0.0",
+  "kind": "documentStatistics"
+}

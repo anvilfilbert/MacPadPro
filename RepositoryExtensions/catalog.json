@@ -79,6 +79,94 @@
       "version": "1.0.0",
       "kind": "theme",
       "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/pro-themes/pro-themes.macpadproext"
+    },
+    {
+      "id": "markdown-preview",
+      "title": "Markdown Preview",
+      "description": "Preview Markdown from the current document or selection in a detached, resizable, closable window.",
+      "version": "1.0.0",
+      "kind": "markdownPreview",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/markdown-preview/markdown-preview.macpadproext"
+    },
+    {
+      "id": "export-tools",
+      "title": "Export Tools",
+      "description": "Export the current document as PDF, HTML, Markdown, or RTF where practical.",
+      "version": "1.0.0",
+      "kind": "exportTools",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/export-tools/export-tools.macpadproext"
+    },
+    {
+      "id": "document-statistics",
+      "title": "Document Statistics",
+      "description": "Show word, character, line, selection, and reading-time statistics for the current document.",
+      "version": "1.0.0",
+      "kind": "documentStatistics",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/document-statistics/document-statistics.macpadproext"
+    },
+    {
+      "id": "diff-viewer",
+      "title": "Diff Viewer",
+      "description": "Compare the current document against clipboard text or another file in a detached diff window.",
+      "version": "1.0.0",
+      "kind": "diffViewer",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/diff-viewer/diff-viewer.macpadproext"
+    },
+    {
+      "id": "auto-backup",
+      "title": "Auto Backup / Versions",
+      "description": "Create optional local timestamped editing snapshots and browse version history.",
+      "version": "1.0.0",
+      "kind": "autoBackup",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/auto-backup/auto-backup.macpadproext"
+    },
+    {
+      "id": "clipboard-snippets",
+      "title": "Clipboard & Snippets Manager",
+      "description": "Manage recent clipboard text and pinned named snippets in a detached, resizable, closable panel.",
+      "version": "1.0.0",
+      "kind": "clipboardSnippets",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/clipboard-snippets/clipboard-snippets.macpadproext"
+    },
+    {
+      "id": "file-outline",
+      "title": "File Outline",
+      "description": "Show Markdown headings and simple code symbols in a detached, resizable, closable navigation panel.",
+      "version": "1.0.0",
+      "kind": "fileOutline",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/file-outline/file-outline.macpadproext"
+    },
+    {
+      "id": "csv-table-viewer",
+      "title": "CSV Table Viewer",
+      "description": "Preview CSV or TSV text as a readable table without changing the original plain text.",
+      "version": "1.0.0",
+      "kind": "csvTableViewer",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/csv-table-viewer/csv-table-viewer.macpadproext"
+    },
+    {
+      "id": "markdown-tools",
+      "title": "Markdown Tools",
+      "description": "Add Markdown editing commands for checkboxes, tables, lists, and ordered-list renumbering.",
+      "version": "1.0.0",
+      "kind": "markdownTools",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/markdown-tools/markdown-tools.macpadproext"
+    },
+    {
+      "id": "encoding-line-endings",
+      "title": "Encoding / Line Ending Tools",
+      "description": "Show current text encoding and convert line endings between Unix, Windows, and classic Mac styles.",
+      "version": "1.0.0",
+      "kind": "encodingLineEndings",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/encoding-line-endings/encoding-line-endings.macpadproext"
+    },
+    {
+      "id": "focus-mode",
+      "title": "Focus / Typewriter Mode",
+      "description": "Add distraction-free editing with optional current-line focus and typewriter scrolling.",
+      "version": "1.0.0",
+      "kind": "focusMode",
+      "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/focus-mode/focus-mode.macpadproext"
     }
   ]
 }

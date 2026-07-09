@@ -1,0 +1,7 @@
+{
+  "id": "markdown-preview",
+  "title": "Markdown Preview",
+  "description": "Preview Markdown from the current document or selection in a detached, resizable, closable window.",
+  "version": "1.0.0",
+  "kind": "markdownPreview"
+}

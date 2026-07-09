@@ -19,6 +19,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
     private var statusBarVisible = true
     private var zoomPercent = 100
     private var lineEnding: LineEnding = .windows
+    private var focusModeEnabled = false
     private var baseFont: NSFont
     private var shouldRestoreInSession = true
     private let extensionRegistryProvider: () -> ExtensionRegistry
@@ -109,6 +110,24 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
 
     var aiLanguageName: String {
         extensionRegistry.detectLanguage(for: fileURL, text: textView.string)
+    }
+
+    var documentText: String {
+        textView.string
+    }
+
+    var documentDisplayName: String {
+        fileURL?.lastPathComponent ?? "Untitled"
+    }
+
+    var selectedOrDocumentText: String {
+        let selectedRange = textView.selectedRange()
+        guard selectedRange.length > 0 else { return textView.string }
+        return (textView.string as NSString).substring(with: selectedRange)
+    }
+
+    var currentLanguageID: String {
+        extensionRegistry.detectLanguageDefinition(for: fileURL, text: textView.string)?.id ?? "plain-text"
     }
 
     func focusDocument() {
@@ -288,6 +307,63 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         notifyStateChanged()
     }
 
+    func runMarkdownTool(id toolID: String) {
+        do {
+            switch toolID {
+            case "toggle-checkbox":
+                textView.insertText(try MarkdownEditingTools.toggleCheckbox(selectedOrDocumentText), replacementRange: effectiveEditingRange())
+            case "insert-table":
+                textView.insertText(MarkdownEditingTools.insertTable(), replacementRange: textView.selectedRange())
+            case "format-list":
+                textView.insertText(MarkdownEditingTools.formatUnorderedList(selectedOrDocumentText), replacementRange: effectiveEditingRange())
+            case "renumber-ordered-list":
+                textView.insertText(MarkdownEditingTools.renumberOrderedList(selectedOrDocumentText), replacementRange: effectiveEditingRange())
+            default:
+                NSSound.beep()
+                return
+            }
+            shouldRestoreInSession = true
+            updateTitle()
+            updateStatusBar()
+            refreshSyntaxHighlighting()
+            notifyStateChanged()
+        } catch {
+            showError("Could not run Markdown tool.", detail: error.localizedDescription)
+        }
+    }
+
+    func convertLineEndings(to lineEnding: LineEnding) {
+        textView.string = TextMetrics.normalizedLineEndingsForEditing(textView.string)
+        self.lineEnding = lineEnding
+        shouldRestoreInSession = true
+        updateTitle()
+        updateStatusBar()
+        refreshSyntaxHighlighting()
+        notifyStateChanged()
+    }
+
+    func documentStatistics() -> DocumentStatistics {
+        DocumentStatisticsCalculator.statistics(
+            for: textView.string,
+            selectedText: selectedTextForAI() ?? "",
+            wordsPerMinute: 200
+        )
+    }
+
+    func jumpToLine(_ line: Int) {
+        selectLine(line)
+    }
+
+    func toggleFocusMode() {
+        focusModeEnabled.toggle()
+        statusBarVisible = !focusModeEnabled
+        statusBar.isHidden = focusModeEnabled
+        wordWrapEnabled = true
+        applyWordWrap()
+        updateStatusBar()
+        notifyStateChanged()
+    }
+
     func selectedTextForAI() -> String? {
         let selectedRange = textView.selectedRange()
         guard selectedRange.length > 0 else { return nil }
@@ -312,6 +388,40 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         updateStatusBar()
         refreshSyntaxHighlighting()
         notifyStateChanged()
+    }
+
+    func exportPlainText(to url: URL) throws {
+        try TextMetrics.textForSave(textView.string, lineEnding: lineEnding).write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    func exportHTML(to url: URL) throws {
+        try MarkdownPreviewRenderer.html(for: textView.string).write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    func exportRTF(to url: URL) throws {
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: textView.font ?? baseFont,
+            .foregroundColor: textView.textColor ?? NSColor.textColor
+        ]
+        let attributedString = NSAttributedString(string: textView.string, attributes: attributes)
+        let range = NSRange(location: 0, length: attributedString.length)
+        let data = try attributedString.data(
+            from: range,
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
+        )
+        try data.write(to: url, options: .atomic)
+    }
+
+    func exportPDF(to url: URL) throws {
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+        printInfo.jobDisposition = .save
+        printInfo.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = url
+        let operation = NSPrintOperation(view: textView, printInfo: printInfo)
+        operation.showsPrintPanel = false
+        operation.showsProgressPanel = false
+        if !operation.run() {
+            throw CocoaError(.userCancelled)
+        }
     }
 
     func confirmDiscardIfNeeded() -> Bool {
@@ -492,6 +602,12 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
             return (textView.string as NSString).substring(with: range)
         }
         return lastFindTerm
+    }
+
+    private func effectiveEditingRange() -> NSRange {
+        let selectedRange = textView.selectedRange()
+        guard selectedRange.length == 0 else { return selectedRange }
+        return NSRange(location: 0, length: (textView.string as NSString).length)
     }
 
     @discardableResult
