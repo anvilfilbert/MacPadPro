@@ -75,7 +75,7 @@
     {
       "id": "pro-themes",
       "title": "Pro Themes",
-      "description": "Add Night, Paper, and Terminal editor themes.",
+      "description": "Add Night, Paper, Terminal, Ocean, Forest, Sunset, Lavender, and High Contrast editor themes.",
       "version": "1.0.0",
       "kind": "theme",
       "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/pro-themes/pro-themes.macpadproext"

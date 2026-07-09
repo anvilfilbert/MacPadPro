@@ -599,7 +599,18 @@ final class ExtensionRegistryTests: XCTestCase {
         let withThemes = ExtensionRegistry.loaded(installedExtensions: InstalledExtensions(installedIDs: ["pro-themes"]))
 
         XCTAssertEqual(base.themes.map(\.id), ["system"])
-        XCTAssertTrue(withThemes.themes.contains { $0.id == "night" })
+        XCTAssertEqual(withThemes.themes.map(\.id), [
+            "system",
+            "night",
+            "paper",
+            "terminal",
+            "ocean",
+            "forest",
+            "sunset",
+            "lavender",
+            "contrast"
+        ])
+        XCTAssertEqual(Set(withThemes.themes.map(\.id)).count, withThemes.themes.count)
     }
 
     func testLanguageDetectionRecognizesPhpAndCppExtensions() {

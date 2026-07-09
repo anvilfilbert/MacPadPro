@@ -17,7 +17,7 @@ MacPad stays small and Notepad-like. MacPad Pro is where customization and devel
 Available downloadable extensions:
 
 - Document Browser: detachable, resizable, and closable open-document browser
-- Pro Themes: Night, Paper, and Terminal
+- Pro Themes: Night, Paper, Terminal, Ocean, Forest, Sunset, Lavender, and High Contrast
 - Clipboard Slots: save and reuse text clipboard content across 10 slots
 - AI extensions:
   - AI Summarizer

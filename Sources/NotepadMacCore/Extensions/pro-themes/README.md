@@ -20,6 +20,19 @@ statusTextColor
 statusBackgroundColor
 ```
 
+Current themes:
+
+```text
+Night
+Paper
+Terminal
+Ocean
+Forest
+Sunset
+Lavender
+High Contrast
+```
+
 The downloadable package manifest lives in:
 
 ```text
