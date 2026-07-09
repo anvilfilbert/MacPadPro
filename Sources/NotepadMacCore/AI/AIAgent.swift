@@ -214,12 +214,15 @@ public struct AITextResult: Sendable, Equatable {
 
 public enum AIAgentClientError: LocalizedError, Equatable {
     case agentError(statusCode: Int, message: String)
+    case emptyAnswer(statusCode: Int)
     case unexpectedResponse(statusCode: Int, body: String)
 
     public var errorDescription: String? {
         switch self {
         case let .agentError(statusCode, message):
             "AI agent returned HTTP \(statusCode) with error: \(message)"
+        case let .emptyAnswer(statusCode):
+            "AI agent returned HTTP \(statusCode) with an empty answer. Try another model or ask again with a shorter selection."
         case let .unexpectedResponse(statusCode, body):
             "Unexpected AI agent response from HTTP \(statusCode). \(body)"
         }
@@ -280,6 +283,7 @@ public struct AIAgentClient: Sendable {
 
     public func makeURLRequest(prompt: String) throws -> URLRequest {
         var request = URLRequest(url: configuration.endpointURL)
+        request.timeoutInterval = 45
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken = configuration.apiToken, !apiToken.isEmpty {
@@ -288,7 +292,8 @@ public struct AIAgentClient: Sendable {
 
         let body = OpenAICompatibleChatRequest(
             model: configuration.modelName,
-            messages: [OpenAICompatibleMessage(role: "user", content: prompt)]
+            messages: [OpenAICompatibleMessage(role: "user", content: prompt)],
+            maxTokens: 1200
         )
         request.httpBody = try JSONEncoder().encode(body)
         return request
@@ -313,6 +318,10 @@ public struct AIAgentClient: Sendable {
         guard let response = try? JSONDecoder().decode(OpenAICompatibleChatResponse.self, from: data),
               let content = response.choices.first?.message.content else {
             throw AIAgentClientError.unexpectedResponse(statusCode: statusCode, body: responsePreview(from: data))
+        }
+
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AIAgentClientError.emptyAnswer(statusCode: statusCode)
         }
 
         return AITextResult(text: content)
@@ -340,6 +349,13 @@ public struct AIAgentClient: Sendable {
 private struct OpenAICompatibleChatRequest: Codable {
     let model: String
     let messages: [OpenAICompatibleMessage]
+    let maxTokens: Int
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case messages
+        case maxTokens = "max_tokens"
+    }
 }
 
 private struct OpenAICompatibleMessage: Codable {

@@ -89,6 +89,15 @@ final class AIAgentTests: XCTestCase {
         XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
     }
 
+    func testRequestUsesBoundedTimeoutAndMaxTokens() throws {
+        let request = try client().makeURLRequest(prompt: "Explain this.")
+        let data = try XCTUnwrap(request.httpBody)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(request.timeoutInterval, 45)
+        XCTAssertEqual(body["max_tokens"] as? Int, 1200)
+    }
+
     func testProviderPresetsIncludeNoTokenLocalOllama() {
         let preset = AIAgentProviderPreset.localOllama
 
@@ -151,6 +160,25 @@ final class AIAgentTests: XCTestCase {
             XCTAssertTrue(error.localizedDescription.contains("HTTP 200"))
             XCTAssertTrue(error.localizedDescription.contains("Unexpected AI agent response"))
             XCTAssertFalse(error.localizedDescription.contains("missing"))
+        }
+    }
+
+    func testClientReportsEmptyAnswerInsteadOfReturningBlankText() throws {
+        let data = """
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "assistant",
+                "content": "   "
+              }
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        XCTAssertThrowsError(try client().decodeResponse(data: data, statusCode: 200)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("empty answer"))
         }
     }
 
