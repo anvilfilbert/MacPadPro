@@ -51,7 +51,7 @@ public extension AIAgentProviderPreset {
         requiresToken: true,
         configuration: AIAgentConfiguration(
             endpointURL: URL(string: "https://openrouter.ai/api/v1/chat/completions")!,
-            modelName: "deepseek/deepseek-r1-0528:free",
+            modelName: "cohere/north-mini-code:free",
             apiToken: nil,
             responseMode: .openAICompatibleJSON
         )

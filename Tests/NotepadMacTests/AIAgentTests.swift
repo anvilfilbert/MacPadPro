@@ -109,6 +109,7 @@ final class AIAgentTests: XCTestCase {
             "https://api.groq.com/openai/v1/chat/completions",
             "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
         ])
+        XCTAssertEqual(presets.first?.configuration.modelName, "cohere/north-mini-code:free")
     }
 
     func testClientReportsAgentErrorMessageFromOpenAICompatibleErrorObject() throws {
