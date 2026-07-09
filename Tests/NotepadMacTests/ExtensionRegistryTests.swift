@@ -86,6 +86,40 @@ final class ExtensionRegistryTests: XCTestCase {
         XCTAssertEqual(Set(catalog.extensions.map(\.id)).count, catalog.extensions.count)
     }
 
+    func testRepositoryCatalogContainsEveryDefaultExtensionForSearch() throws {
+        let repositoryCatalog = try repositoryExtensionCatalog()
+        let defaultIDs = Set(ExtensionCatalog.default.extensions.map(\.id))
+        let repositoryIDs = Set(repositoryCatalog.extensions.map(\.id))
+
+        XCTAssertEqual(repositoryIDs, defaultIDs)
+
+        for extensionItem in repositoryCatalog.extensions {
+            XCTAssertEqual(repositoryCatalog.extension(withID: extensionItem.id), extensionItem)
+            XCTAssertTrue(repositoryCatalog.search(matching: extensionItem.id).contains(extensionItem))
+            XCTAssertTrue(repositoryCatalog.search(matching: extensionItem.title).contains(extensionItem))
+            XCTAssertTrue(repositoryCatalog.search(matching: extensionItem.kind.rawValue).contains(extensionItem))
+        }
+    }
+
+    func testRepositoryCatalogContainsEveryPackagedExtensionDirectory() throws {
+        let repositoryCatalog = try repositoryExtensionCatalog()
+        let repositoryRoot = try repoRoot()
+            .appendingPathComponent("RepositoryExtensions")
+        let packageDirectories = try FileManager.default.contentsOfDirectory(
+            at: repositoryRoot,
+            includingPropertiesForKeys: [.isDirectoryKey]
+        )
+            .filter { url in
+                guard url.lastPathComponent != "catalog.json" else { return false }
+                guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { return false }
+                let packageURL = url.appendingPathComponent("\(url.lastPathComponent).macpadproext")
+                return FileManager.default.fileExists(atPath: packageURL.path)
+            }
+            .map(\.lastPathComponent)
+
+        XCTAssertEqual(Set(packageDirectories), Set(repositoryCatalog.extensions.map(\.id)))
+    }
+
     func testDefaultCatalogDownloadsFromMacPadProGitHubRepository() throws {
         let catalog = ExtensionCatalog.default
 
@@ -393,12 +427,7 @@ final class ExtensionRegistryTests: XCTestCase {
 
     func testEachDownloadableExtensionHasOwnSourceDirectory() throws {
         let catalog = ExtensionCatalog.default
-        let testFile = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFile
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let extensionsRoot = repoRoot
+        let extensionsRoot = try repoRoot()
             .appendingPathComponent("Sources")
             .appendingPathComponent("NotepadMacCore")
             .appendingPathComponent("Extensions")
@@ -417,6 +446,22 @@ final class ExtensionRegistryTests: XCTestCase {
                 .filter { $0.pathExtension == "swift" }
             XCTAssertFalse(swiftFiles.isEmpty, "\(extensionItem.id) extension directory should contain Swift files")
         }
+    }
+
+    private func repositoryExtensionCatalog() throws -> ExtensionCatalog {
+        let catalogURL = try repoRoot()
+            .appendingPathComponent("RepositoryExtensions")
+            .appendingPathComponent("catalog.json")
+        let data = try Data(contentsOf: catalogURL)
+        return try JSONDecoder().decode(ExtensionCatalog.self, from: data)
+    }
+
+    private func repoRoot() throws -> URL {
+        let testFile = URL(fileURLWithPath: #filePath)
+        return testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
     }
 
     func testInstalledExtensionsCanLoadAndDeleteOneExtensionAtATime() {

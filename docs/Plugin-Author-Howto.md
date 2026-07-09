@@ -118,6 +118,22 @@ aiSmartSearch
 
 If the plugin needs a new kind, add it to `ExtensionKind`, extend `ExtensionRegistry`, and add tests for activation and deactivation.
 
+## Theme Plugin Colors
+
+Theme color definitions belong in the theme extension source directory.
+
+For the built-in Pro Themes extension, colors live in:
+
+```text
+Sources/NotepadMacCore/Extensions/pro-themes/ProThemesExtensionPackage.swift
+```
+
+The extension directory also contains a short local README:
+
+```text
+Sources/NotepadMacCore/Extensions/pro-themes/README.md
+```
+
 ## Add The Catalog Entry
 
 Add the plugin to:
