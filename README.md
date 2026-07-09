@@ -93,7 +93,13 @@ Current extension packages:
 - `Extensions/ai-smart-search/AISmartSearchExtensionPackage.swift`
 - `Extensions/pro-themes/ProThemesExtensionPackage.swift`
 
-User guide for creating custom extensions:
+User guide for plugin authors:
+
+```text
+docs/Plugin-Author-Howto.md
+```
+
+Developer reference for creating custom extensions:
 
 ```text
 docs/Creating-Extensions.md
