@@ -114,9 +114,33 @@ textCommand
 clipboard
 aiTextTask
 aiSmartSearch
+markdownPreview
+exportTools
+documentStatistics
+diffViewer
+autoBackup
+clipboardSnippets
+fileOutline
+csvTableViewer
+markdownTools
+encodingLineEndings
+focusMode
 ```
 
 If the plugin needs a new kind, add it to `ExtensionKind`, extend `ExtensionRegistry`, and add tests for activation and deactivation.
+
+Use existing menu groups when possible:
+
+- `Extensions > Markdown`
+- `Extensions > Export`
+- `Extensions > Tools`
+- `Extensions > Backup`
+- `Extensions > Clipboard & Snippets`
+- `Extensions > Navigation`
+- `Extensions > Data`
+- `Extensions > Text`
+- `Extensions > View`
+- `Extensions > AI`
 
 ## Theme Plugin Colors
 
@@ -154,6 +178,8 @@ Example:
   "downloadURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/word-counter/word-counter.macpadproext"
 }
 ```
+
+Use searchable titles and descriptions. Include keywords like Markdown, CSV, PHP, formatter, snippets, local backup, line endings, detached window, or AI agent when they apply.
 
 ## Keep Plugins Opt-In
 
@@ -219,3 +245,9 @@ Then open MacPad Pro and verify:
 Commit the source directory, repository package directory, catalog update, and tests together.
 
 After pushing to GitHub, users can refresh the extension catalog inside MacPad Pro and download the plugin one by one.
+
+If the extension adds a new category or notable capability, update:
+
+- `README.md`
+- `RepositoryExtensions/README.md`
+- GitHub topics when the keyword describes the repo as a whole

@@ -1,65 +1,50 @@
 # MacPad Pro
 
-MacPad Pro is the experimental extension-friendly edition of [MacPad](https://github.com/anvilfilbert/MacPad)
+MacPad Pro is the experimental extension-friendly edition of [MacPad](https://github.com/anvilfilbert/MacPad). MacPad stays small and Notepad-like. MacPad Pro is where optional themes, tools, formatters, panels, and AI-agent workflows can grow without changing the simple app.
 
-MacPad stays small and Notepad-like. MacPad Pro is where customization and developer-oriented features can grow without changing the simple app.
+Keywords: macOS, Swift, AppKit, plain text editor, Notepad, Notepad for Mac, Markdown editor, code editor, syntax highlighting, extensions, plugins, downloadable extensions, local-first, AI agent, Ollama, OpenRouter, clipboard snippets, document tools.
 
-## Pro Capabilities
+## Features
 
-- Built-in language recognition in the status bar for common code and markup files
-- Built-in syntax coloring for PHP and C-family files, including comments, strings, keywords, numbers, PHP variables, and PHP open tags
-- Built-in text commands:
-  - Trim trailing whitespace
-  - Sort lines
-  - Uppercase
-  - Lowercase
+- Plain-text editing with tabs, windows, find/replace, zoom, word wrap, status bar, and file save/open support.
+- Language recognition in the status bar for common code and markup files.
+- Syntax coloring for PHP and C-family files, including comments, strings, keywords, numbers, PHP variables, and PHP open tags.
+- Built-in text commands: trim trailing whitespace, sort lines, uppercase, and lowercase.
+- Extension Manager for downloading, loading, activating, deactivating, and deleting Pro extensions one by one.
+- Local-first extension behavior for clipboard, snippets, backups, versions, and document tools.
+- Optional AI extensions that connect only to user-configured local or remote OpenAI-compatible agents.
 
-Available downloadable extensions:
+## Downloadable Extensions
 
-- Document Browser: detachable, resizable, and closable open-document browser
-- Pro Themes: Night, Paper, Terminal, Ocean, Forest, Sunset, Lavender, and High Contrast
-- Clipboard Slots: save and reuse text clipboard content across 10 slots
-- Markdown Preview: detached live preview for the current Markdown document or selection
-- Export Tools: export the current document as PDF, HTML, Markdown, or RTF
-- Document Statistics: detached word, character, line, selection, and reading-time report
-- Diff Viewer: compare the current document against clipboard text or another file
-- Auto Backup / Versions: local timestamped editing snapshots and version history
-- Clipboard & Snippets Manager: detached panel for recent clipboard text and saved snippets
-- File Outline: detached Markdown heading and code symbol outline with line navigation
-- CSV Table Viewer: detached CSV/TSV table preview that keeps the source text unchanged
-- Markdown Tools: checkbox, table, list formatting, and ordered-list renumbering commands
-- Encoding / Line Ending Tools: show UTF-8 status and convert Unix, Windows, and classic Mac line endings
-- Focus / Typewriter Mode: distraction-free editing toggle
-- AI extensions:
-  - AI Summarizer
-  - AI Code Explainer
-  - AI Code Refactor Assistant
-  - AI Meeting Notes Cleaner
-  - AI Smart Search
-- Formatter extensions:
-  - Format As JSON
-  - Format C/PHP/C++ brace-style code
-- Text command extensions:
-  - Pretty Print JSON
+Fresh installs do not activate downloadable extensions. Users enable only the extensions they want from `Extensions > Manage Extensions...`.
 
-Pro extensions are registered through `ExtensionRegistry` in `NotepadMacCore`.
-The registry currently owns built-in document browsers, themes, language definitions, text commands, code formatters, clipboard tools, AI extension commands, and optional non-AI tool panels.
-Language definitions also drive editor syntax coloring so a recognized PHP, C, C++, JavaScript, TypeScript, Java, CSS, or Objective-C++ file gets code-aware colors while remaining a plain-text document on disk.
+| Extension | ID | Menu | Notes |
+| --- | --- | --- | --- |
+| Document Browser | `open-documents` | `Extensions > Document Browser` | Detached, resizable, closable open-document browser. |
+| Pro Themes | `pro-themes` | `Extensions > Themes` | Night, Paper, Terminal, Ocean, Forest, Sunset, Lavender, High Contrast. |
+| Clipboard Slots | `clipboard-slots` | `Extensions > Clipboard Slots` | Save and reuse clipboard content across 10 slots. |
+| Markdown Preview | `markdown-preview` | `Extensions > Markdown > Preview` | Detached live Markdown preview from selection or document. |
+| Export Tools | `export-tools` | `Extensions > Export > Export As...` | Export as PDF, HTML, Markdown, or RTF. |
+| Document Statistics | `document-statistics` | `Extensions > Tools > Document Statistics` | Word, character, line, selection, and reading-time report. |
+| Diff Viewer | `diff-viewer` | `Extensions > Tools > Compare...` | Compare against clipboard text or another file. |
+| Auto Backup / Versions | `auto-backup` | `Extensions > Backup > Version History` | Local timestamped snapshots with restore/copy controls. |
+| Clipboard & Snippets Manager | `clipboard-snippets` | `Extensions > Clipboard & Snippets` | Detached panel for recent clipboard text and pinned named snippets. |
+| File Outline | `file-outline` | `Extensions > Navigation > File Outline` | Markdown headings and simple code symbols with line navigation. |
+| CSV Table Viewer | `csv-table-viewer` | `Extensions > Data > Table Preview` | CSV/TSV preview without changing source text. |
+| Markdown Tools | `markdown-tools` | `Extensions > Markdown > Tools` | Checkbox, table, list formatting, ordered-list renumbering. |
+| Encoding / Line Ending Tools | `encoding-line-endings` | `Extensions > Text > Encoding & Line Endings` | Show UTF-8 status and convert Unix, Windows, classic Mac line endings. |
+| Focus / Typewriter Mode | `focus-mode` | `Extensions > View > Focus Mode` | Distraction-free editing toggle. |
+| JSON Formatter | `json-formatter` | `Extensions > Format As` | Pretty-print JSON. |
+| C/PHP Formatter | `c-family-formatter` | `Extensions > Format As` | Format PHP, C, C++, Java, JavaScript, TypeScript, and CSS brace-style code. |
+| AI Summarizer | `ai-summarizer` | `Extensions > AI > Summarize Selection` | Sends selected text to configured agent. |
+| AI Code Explainer | `ai-code-explainer` | `Extensions > AI > Explain Code` | Explains selected code with filename/language context. |
+| AI Code Refactor Assistant | `ai-code-refactor` | `Extensions > AI > Suggest Refactor` | Opens suggested refactor output in a new document. |
+| AI Meeting Notes Cleaner | `ai-meeting-notes` | `Extensions > AI > Clean Meeting Notes` | Produces summary, decisions, action items, open questions. |
+| AI Smart Search | `ai-smart-search` | `Extensions > AI > Smart Search` | Detached semantic search over open document snippets. |
 
-AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials, and AI calls are only made from explicit user actions. `Extensions > AI Agent Settings...` includes provider presets:
+## Extension Catalog
 
-- Local Ollama: free local models, no API token
-- OpenRouter Free Models: hosted free-model catalog, OpenRouter token required
-- Groq Free Tier: hosted free-tier inference, Groq token required
-- Google Gemini Free Tier: Gemini API free tier, Google AI Studio token required
-- OpenAI: OpenAI API, OpenAI API token required
-
-Public hosted AI endpoints normally require tokens even for free tiers. The no-token option is local Ollama.
-
-Downloadable extensions are represented through `ExtensionCatalog`.
-Each extension has a unique id, description, version, type, and download URL so users can download and install extensions one by one as `.macpadproext` packages.
-
-MacPad Pro publishes its downloadable extension catalog from this GitHub repo at:
+MacPad Pro publishes its downloadable extension catalog from this repository:
 
 ```text
 RepositoryExtensions/catalog.json
@@ -71,61 +56,37 @@ The app reads the raw GitHub catalog URL:
 https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/catalog.json
 ```
 
-Use `Extensions > Manage Extensions...` to refresh the MacPadPro GitHub catalog, search extensions by name, id, description, or type, download extension packages, load already downloaded local packages, activate/deactivate extensions without deleting them, or delete them one by one.
-Installed and deactivated extension ids are stored locally and control which extension menu items appear.
-Fresh installs start with downloadable extensions uninstalled so users can add them one by one.
-Open editor windows resolve the current active extension state when applying themes, running formatters, and detecting languages.
-Downloaded `.macpadproext` packages are stored in the user's Application Support folder under `MacPad Pro/Extensions`.
-Downloaded packages are decoded and validated against the selected catalog entry before they are saved and loaded.
-The Load control is enabled only when a valid matching local package file is present, and the package is validated again before it is loaded.
+Each extension has:
 
-Each downloadable extension owns its own source directory under:
+- source code under `Sources/NotepadMacCore/Extensions/<extension-id>/`
+- package manifest under `RepositoryExtensions/<extension-id>/<extension-id>.macpadproext`
+- catalog entry in `RepositoryExtensions/catalog.json`
+- runtime registration through `ExtensionCatalog.default`
+- focused tests for catalog/package/activation/core behavior
 
-```text
-Sources/NotepadMacCore/Extensions/<extension-id>/
-```
+Downloaded `.macpadproext` packages are stored locally in Application Support under `MacPad Pro/Extensions`. Packages are decoded and validated against the selected catalog entry before loading.
 
-Each repository package also has its own directory under:
+## AI Agent Setup
 
-```text
-RepositoryExtensions/<extension-id>/
-```
+AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials. AI calls are explicit user actions and do not run in the background.
 
-Current extension packages:
+`Extensions > AI Agent Settings...` includes provider presets:
 
-- `Extensions/open-documents/OpenDocumentsExtensionPackage.swift`
-- `Extensions/json-formatter/JSONFormatterExtensionPackage.swift`
-- `Extensions/c-family-formatter/CFamilyFormatterExtensionPackage.swift`
-- `Extensions/clipboard-slots/ClipboardSlotsExtensionPackage.swift`
-- `Extensions/ai-summarizer/AISummarizerExtensionPackage.swift`
-- `Extensions/ai-code-explainer/AICodeExplainerExtensionPackage.swift`
-- `Extensions/ai-code-refactor/AICodeRefactorExtensionPackage.swift`
-- `Extensions/ai-meeting-notes/AIMeetingNotesExtensionPackage.swift`
-- `Extensions/ai-smart-search/AISmartSearchExtensionPackage.swift`
-- `Extensions/pro-themes/ProThemesExtensionPackage.swift`
-- `Extensions/markdown-preview/MarkdownPreviewExtensionPackage.swift`
-- `Extensions/export-tools/ExportToolsExtensionPackage.swift`
-- `Extensions/document-statistics/DocumentStatisticsExtensionPackage.swift`
-- `Extensions/diff-viewer/DiffViewerExtensionPackage.swift`
-- `Extensions/auto-backup/AutoBackupExtensionPackage.swift`
-- `Extensions/clipboard-snippets/ClipboardSnippetsExtensionPackage.swift`
-- `Extensions/file-outline/FileOutlineExtensionPackage.swift`
-- `Extensions/csv-table-viewer/CSVTableViewerExtensionPackage.swift`
-- `Extensions/markdown-tools/MarkdownToolsExtensionPackage.swift`
-- `Extensions/encoding-line-endings/EncodingLineEndingsExtensionPackage.swift`
-- `Extensions/focus-mode/FocusModeExtensionPackage.swift`
+- Local Ollama: free local models, no API token
+- OpenRouter Free Models: hosted free-model catalog, OpenRouter token required
+- Groq Free Tier: hosted free-tier inference, Groq token required
+- Google Gemini Free Tier: Gemini API free tier, Google AI Studio token required
+- OpenAI: OpenAI API, OpenAI API token required
 
-User guide for plugin authors:
+Public hosted AI endpoints normally require tokens even for free tiers. The no-token option is local Ollama.
 
-```text
-docs/Plugin-Author-Howto.md
-```
+## Documentation
 
-Developer reference for creating custom extensions:
-
-```text
-docs/Creating-Extensions.md
-```
+- [Plugin Author How-To](docs/Plugin-Author-Howto.md)
+- [Creating MacPad Pro Extensions](docs/Creating-Extensions.md)
+- [Repository Extension Catalog](RepositoryExtensions/README.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
 
 ## Build
 
@@ -158,3 +119,10 @@ Run tests:
 ```sh
 swift test
 ```
+
+Before pushing extension changes, verify:
+
+- `swift test --quiet`
+- `./scripts/build-app.sh`
+- `./scripts/install-app.sh`
+- `./scripts/package-release.sh`

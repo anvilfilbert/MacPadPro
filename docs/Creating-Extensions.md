@@ -103,9 +103,33 @@ textCommand
 clipboard
 aiTextTask
 aiSmartSearch
+markdownPreview
+exportTools
+documentStatistics
+diffViewer
+autoBackup
+clipboardSnippets
+fileOutline
+csvTableViewer
+markdownTools
+encodingLineEndings
+focusMode
 ```
 
 If your extension needs a new kind, add it to `ExtensionKind`, add a registry surface in `ExtensionRegistry`, and add tests for activation/deactivation.
+
+Current user-facing extension groups:
+
+- Markdown: preview and editing tools
+- Export: PDF, HTML, Markdown, RTF
+- Tools: document statistics and diff viewer
+- Backup: local version history
+- Clipboard & Snippets: local clipboard history and pinned snippets
+- Navigation: file outline
+- Data: CSV/TSV table preview
+- Text: encoding and line-ending tools
+- View: focus mode
+- AI: opt-in agent-backed text tasks and smart search
 
 ## Activation Rules
 
@@ -137,6 +161,18 @@ Examples:
 - `Extensions > AI > Summarize Selection`
 
 Actions usually live in `AppDelegate.swift` and call the active editor window.
+
+Detached panels should use their own `NSWindowController` so they remain resizable and closable. Keep reusable parsing, formatting, counting, or conversion logic in `NotepadMacCore` so it can be tested without launching the app.
+
+## Repository Keywords
+
+When adding an extension, use clear titles and descriptions that contain search terms users will try in Extension Manager and on GitHub. Good descriptions include:
+
+- what the extension does
+- where it appears in the menu
+- whether data stays local
+- whether it opens a detached panel
+- supported file types or languages
 
 ## Data And Privacy
 
