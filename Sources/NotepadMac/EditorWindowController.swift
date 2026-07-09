@@ -120,6 +120,10 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         fileURL?.lastPathComponent ?? "Untitled"
     }
 
+    var documentFileURL: URL? {
+        fileURL
+    }
+
     var selectedOrDocumentText: String {
         let selectedRange = textView.selectedRange()
         guard selectedRange.length > 0 else { return textView.string }

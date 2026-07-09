@@ -3,7 +3,7 @@ import NotepadMacCore
 
 @MainActor
 enum MainMenuFactory {
-    static func makeMenu(target: AnyObject, extensionRegistry: ExtensionRegistry) -> NSMenu {
+    static func makeMenu(target: AnyObject, extensionRegistry: ExtensionRegistry, recentFiles: [String]) -> NSMenu {
         let mainMenu = NSMenu(title: "Main Menu")
 
         let appMenu = NSMenu(title: "MacPad Pro")
@@ -18,6 +18,20 @@ enum MainMenuFactory {
         addItem("New Tab", to: fileMenu, action: #selector(AppDelegate.openNewTab(_:)), target: target, key: "n")
         addItem("New Window", to: fileMenu, action: #selector(AppDelegate.openNewWindow(_:)), target: target, key: "n", modifiers: [.command, .shift])
         addItem("Open...", to: fileMenu, action: #selector(AppDelegate.openDocument(_:)), target: target, key: "o")
+        let recentMenu = NSMenu(title: "Open Recent Files...")
+        for path in recentFiles.prefix(5) {
+            let item = addItem(URL(fileURLWithPath: path).lastPathComponent, to: recentMenu, action: #selector(AppDelegate.openRecentFile(_:)), target: target)
+            item.representedObject = path
+            item.toolTip = path
+        }
+        if recentFiles.isEmpty {
+            let emptyItem = NSMenuItem(title: "No Recent Files", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            recentMenu.addItem(emptyItem)
+        }
+        let recentRoot = NSMenuItem(title: "Open Recent Files...", action: nil, keyEquivalent: "")
+        recentRoot.submenu = recentMenu
+        fileMenu.addItem(recentRoot)
         addItem("Close", to: fileMenu, action: #selector(NSWindow.performClose(_:)), target: nil, key: "w")
         fileMenu.addItem(.separator())
         addItem("Save", to: fileMenu, action: #selector(AppDelegate.save(_:)), target: target, key: "s")

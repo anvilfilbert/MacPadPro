@@ -6,6 +6,7 @@ import Security
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let sessionDefaultsKey = "MacPadPro.SessionState.v1"
     private let installedExtensionsDefaultsKey = "MacPadPro.InstalledExtensions.v1"
+    private let recentFilesDefaultsKey = "MacPadPro.RecentFiles.v1"
     private let clipboardSlotsDefaultsKey = "MacPadPro.ClipboardSlots.v1"
     private let clipboardSnippetsDefaultsKey = "MacPadPro.ClipboardSnippets.v1"
     private let aiAgentSettingsDefaultsKey = "MacPadPro.AIAgentSettings.v1"
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let extensionCatalogLoader = ExtensionRepositoryCatalogLoader()
     private let extensionPackageDownloader = ExtensionPackageDownloader()
     private var installedExtensions = InstalledExtensions.bundledDefault
+    private var recentFiles = RecentFilesStore(paths: [])
     private var clipboardSlots = ClipboardSlotStore(slotCount: 10)
     private var clipboardSnippetStore = ClipboardSnippetStore(recent: [], pinned: [])
     private var windows: [EditorWindowController] = []
@@ -40,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
         installedExtensions = loadInstalledExtensions()
+        recentFiles = loadRecentFiles()
         clipboardSlots = loadClipboardSlots()
         clipboardSnippetStore = loadClipboardSnippetStore()
         rebuildMainMenu()
@@ -103,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = makeWindowController()
         present(controller, asTab: keyWindowController != nil)
         controller.loadFile(url)
+        recordRecentFile(url)
     }
 
     private func makeWindowController() -> EditorWindowController {
@@ -145,8 +149,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windows.first { $0.window?.isKeyWindow == true } ?? windows.last
     }
 
-    @objc func save(_ sender: Any?) { keyWindowController?.save(sender) }
-    @objc func saveAs(_ sender: Any?) { keyWindowController?.saveAs(sender) }
+    @objc func save(_ sender: Any?) {
+        keyWindowController?.save(sender)
+        recordCurrentFileAsRecent()
+    }
+    @objc func saveAs(_ sender: Any?) {
+        keyWindowController?.saveAs(sender)
+        recordCurrentFileAsRecent()
+    }
     @objc func printDocument(_ sender: Any?) { keyWindowController?.printDocument(sender) }
     @objc func toggleWordWrap(_ sender: Any?) { keyWindowController?.toggleWordWrap(sender) }
     @objc func toggleStatusBar(_ sender: Any?) { keyWindowController?.toggleStatusBar(sender) }
@@ -160,6 +170,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func zoomOut(_ sender: Any?) { keyWindowController?.zoomOut(sender) }
     @objc func restoreZoom(_ sender: Any?) { keyWindowController?.restoreZoom(sender) }
     @objc func chooseFont(_ sender: Any?) { keyWindowController?.chooseFont(sender) }
+    @objc func openRecentFile(_ sender: NSMenuItem) {
+        guard let path = sender.representedObject as? String else { return }
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            recentFiles.remove(path: path)
+            saveRecentFiles()
+            rebuildMainMenu()
+            showError("Recent file not found.", detail: path)
+            return
+        }
+        openDocument(url: url)
+    }
     @objc func applyTheme(_ sender: NSMenuItem) { keyWindowController?.applyTheme(at: sender.tag) }
     @objc func runTextCommand(_ sender: NSMenuItem) {
         guard let commandID = sender.representedObject as? String,
@@ -768,6 +790,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func loadRecentFiles() -> RecentFilesStore {
+        guard let data = UserDefaults.standard.data(forKey: recentFilesDefaultsKey),
+              let store = try? JSONDecoder().decode(RecentFilesStore.self, from: data) else {
+            return RecentFilesStore(paths: [])
+        }
+        return store
+    }
+
+    private func saveRecentFiles() {
+        if let data = try? JSONEncoder().encode(recentFiles) {
+            UserDefaults.standard.set(data, forKey: recentFilesDefaultsKey)
+        }
+    }
+
+    private func recordRecentFile(_ url: URL) {
+        recentFiles.record(path: url.path)
+        saveRecentFiles()
+        rebuildMainMenu()
+    }
+
+    private func recordCurrentFileAsRecent() {
+        guard let url = keyWindowController?.documentFileURL else { return }
+        recordRecentFile(url)
+    }
+
     private func loadClipboardSlots() -> ClipboardSlotStore {
         guard let data = UserDefaults.standard.data(forKey: clipboardSlotsDefaultsKey),
               let store = try? JSONDecoder().decode(ClipboardSlotStore.self, from: data) else {
@@ -988,7 +1035,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func rebuildMainMenu() {
-        NSApp.mainMenu = MainMenuFactory.makeMenu(target: self, extensionRegistry: extensionRegistry)
+        NSApp.mainMenu = MainMenuFactory.makeMenu(target: self, extensionRegistry: extensionRegistry, recentFiles: recentFiles.paths)
     }
 
     private func showError(_ message: String, detail: String) {
