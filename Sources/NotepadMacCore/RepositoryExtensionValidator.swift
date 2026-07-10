@@ -134,7 +134,7 @@ public struct RepositoryExtensionValidator: Sendable {
         do {
             let manifestData = try Data(contentsOf: manifestURL)
             let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: manifestData)
-            try manifest.validate(matches: extensionItem)
+            try ExtensionPackageValidator().validateManifest(manifest, matches: extensionItem)
             return validateRepositoryScriptFiles(manifest: manifest, packageDirectory: packageDirectory)
         } catch {
             return [.invalidPackageManifest(extensionID: extensionItem.id, reason: error.localizedDescription)]
@@ -147,26 +147,8 @@ public struct RepositoryExtensionValidator: Sendable {
     ) -> [RepositoryExtensionValidationIssue] {
         guard let scriptCommand = manifest.scriptCommand else { return [] }
         let scriptURL = packageDirectory.appendingPathComponent(scriptCommand.scriptFile)
-        guard FileManager.default.fileExists(atPath: scriptURL.path) else {
-            return [.invalidPackageManifest(
-                extensionID: manifest.id,
-                reason: ExtensionPackageDownloadError.scriptFileMissing(scriptFile: scriptCommand.scriptFile).localizedDescription
-            )]
-        }
-        guard let expectedSHA256 = scriptCommand.sourceSHA256 else { return [] }
         do {
-            let scriptData = try Data(contentsOf: scriptURL)
-            let actualSHA256 = sha256Hex(for: scriptData)
-            guard actualSHA256.caseInsensitiveCompare(expectedSHA256) == .orderedSame else {
-                return [.invalidPackageManifest(
-                    extensionID: manifest.id,
-                    reason: ExtensionPackageDownloadError.scriptChecksumMismatch(
-                        expectedSHA256: expectedSHA256,
-                        actualSHA256: actualSHA256,
-                        scriptFile: scriptCommand.scriptFile
-                    ).localizedDescription
-                )]
-            }
+            try ExtensionPackageValidator().validateScriptFile(scriptURL, scriptCommand: scriptCommand)
             return []
         } catch {
             return [.invalidPackageManifest(extensionID: manifest.id, reason: error.localizedDescription)]
