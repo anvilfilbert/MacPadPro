@@ -81,6 +81,5 @@ Use these terms in extension descriptions when relevant so users can find packag
 - Add package under `RepositoryExtensions/<extension-id>/`.
 - Add catalog entry in `RepositoryExtensions/catalog.json`.
 - Add package entry to `ExtensionCatalog.default`.
-- Add tests for catalog, package validation, activation/deactivation, and core behavior.
 - Update `README.md` and docs when the extension adds a new user-facing capability.
 - Run `./scripts/verify-release.sh` before publishing.

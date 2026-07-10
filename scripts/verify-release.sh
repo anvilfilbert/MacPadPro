@@ -10,7 +10,7 @@ ZIP_PATH="$ROOT_DIR/dist/MacPadPro-${VERSION}-macOS-universal.zip"
 
 cd "$ROOT_DIR"
 
-swift test --quiet
+"$ROOT_DIR/scripts/verify-public-repo.sh"
 "$ROOT_DIR/scripts/package-release.sh"
 /usr/bin/codesign --verify --deep --verbose=2 "$APP_DIR"
 test -d "$APP_DIR"

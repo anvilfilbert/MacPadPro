@@ -74,7 +74,7 @@ Each extension has:
 - package manifest under `RepositoryExtensions/<extension-id>/<extension-id>.macpadproext`
 - catalog entry in `RepositoryExtensions/catalog.json`
 - runtime registration through `ExtensionCatalog.default`
-- focused tests for catalog/package/activation/core behavior
+- public-release verification through `./scripts/verify-public-repo.sh`
 
 Downloaded `.macpadproext` packages are stored locally in Application Support under `MacPad Pro/Extensions`. Packages are decoded and validated against the selected catalog entry before loading.
 
@@ -126,7 +126,7 @@ Create a release zip with:
 ./scripts/package-release.sh
 ```
 
-Verify the release path with tests, packaging, and code-signature checks:
+Verify the release path with public-repository checks, packaging, and code-signature checks:
 
 ```sh
 ./scripts/verify-release.sh
@@ -134,10 +134,10 @@ Verify the release path with tests, packaging, and code-signature checks:
 
 ## Development
 
-Run tests:
+Run public repository checks:
 
 ```sh
-swift test
+./scripts/verify-public-repo.sh
 ```
 
 Before pushing extension changes, verify:

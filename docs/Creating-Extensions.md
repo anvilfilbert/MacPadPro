@@ -149,7 +149,7 @@ encodingLineEndings
 focusMode
 ```
 
-If your extension needs a new kind, add it to `ExtensionKind`, add a registry surface in `ExtensionRegistry`, and add tests for activation/deactivation.
+If your extension needs a new kind, add it to `ExtensionKind`, add a registry surface in `ExtensionRegistry`, and verify activation/deactivation before publishing.
 
 Current user-facing extension groups:
 
@@ -233,9 +233,9 @@ networkAccess
 
 For downloadable scripts, include `sourceSHA256`. Extension Manager rejects script files whose actual checksum differs from the manifest.
 
-## Tests To Add
+## Public Verification
 
-Every extension should include focused tests:
+Before publishing, verify:
 
 - Catalog contains the extension id and kind.
 - Catalog search finds title, description, and kind.
@@ -245,17 +245,17 @@ Every extension should include focused tests:
 - Deactivation hides the feature without deleting the package.
 - Script plugins execute `transform(input)` and reject invalid script packages.
 - Installed package versions report update availability when the repository catalog has a newer version.
-- Core logic is tested without launching the app.
+- No tracked tests, personal names, local paths, API keys, or secret-like values are committed.
 
 Run:
 
 ```sh
-swift test
+./scripts/verify-public-repo.sh
 ```
 
 ## Local Verification
 
-After tests pass:
+After public verification passes:
 
 ```sh
 ./scripts/install-app.sh
@@ -273,5 +273,5 @@ Before pushing:
 - `RepositoryExtensions/catalog.json` contains the raw GitHub package URL.
 - `ExtensionCatalog.default` includes the package entry.
 - README or user docs mention the extension.
-- `swift test` passes.
+- `./scripts/verify-public-repo.sh` passes.
 - The app builds and installs locally.

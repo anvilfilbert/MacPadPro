@@ -163,7 +163,7 @@ focusMode
 
 Use `textCommand` for JavaScript transform plugins. The command appears with other text commands after the user downloads and activates it.
 
-If the plugin needs a new kind, add it to `ExtensionKind`, extend `ExtensionRegistry`, and add tests for activation and deactivation.
+If the plugin needs a new kind, add it to `ExtensionKind`, extend `ExtensionRegistry`, and verify activation and deactivation before publishing.
 
 Use existing menu groups when possible:
 
@@ -249,9 +249,9 @@ networkAccess
 
 Script packages should include `sourceSHA256`. MacPad Pro validates downloaded script content before saving it locally.
 
-## Tests To Add
+## Public Verification
 
-Add focused tests for:
+Before publishing, verify:
 
 - catalog entry exists
 - package manifest validates
@@ -259,11 +259,12 @@ Add focused tests for:
 - plugin loads only when active
 - plugin hides when deactivated
 - core logic works without launching the app
+- no tracked tests, personal names, local paths, API keys, or secret-like values are committed
 
 Run:
 
 ```sh
-swift test
+./scripts/verify-public-repo.sh
 ```
 
 ## Local Verification
@@ -291,7 +292,7 @@ Then open MacPad Pro and verify:
 
 ## Publishing
 
-Commit the source directory, repository package directory, catalog update, and tests together.
+Commit the source directory, repository package directory, catalog update, and documentation together.
 
 After pushing to GitHub, users can refresh the extension catalog inside MacPad Pro and download the plugin one by one.
 
