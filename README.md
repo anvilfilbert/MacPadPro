@@ -104,6 +104,7 @@ Public hosted AI endpoints normally require tokens even for free tiers. The no-t
 - [Repository Extension Catalog](RepositoryExtensions/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ## Build
 
