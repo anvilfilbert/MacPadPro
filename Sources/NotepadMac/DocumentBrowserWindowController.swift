@@ -87,6 +87,7 @@ final class DocumentBrowserWindowController: NSWindowController, NSWindowDelegat
         tableView.addTableColumn(makeColumn(identifier: Column.location, title: "Location", width: 300))
         tableView.usesAlternatingRowBackgroundColors = true
         tableView.allowsColumnResizing = true
+        tableView.setAccessibilityIdentifier("macpadpro.document-browser.table")
         tableView.delegate = self
         tableView.dataSource = self
         tableView.target = self

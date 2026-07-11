@@ -509,6 +509,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         textView.importsGraphics = false
         textView.allowsUndo = true
         textView.usesFindPanel = false
+        textView.setAccessibilityIdentifier("macpadpro.editor.text")
         textView.font = baseFont
         textView.textColor = currentTheme.textColor
         textView.backgroundColor = currentTheme.backgroundColor
@@ -527,6 +528,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         statusBar.isBordered = false
         statusBar.isEditable = false
         statusBar.alignment = .right
+        statusBar.setAccessibilityIdentifier("macpadpro.editor.status")
         statusBar.lineBreakMode = .byTruncatingHead
         statusBar.setContentHuggingPriority(.required, for: .vertical)
         statusBar.heightAnchor.constraint(equalToConstant: 24).isActive = true

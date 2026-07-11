@@ -26,9 +26,24 @@ AI extensions must not ship built-in credentials. Users configure their own loca
 
 - Declare plugin permissions in the catalog and package manifest.
 - Use the narrowest permissions possible, such as `readSelectedText` and `editSelectedText` for text commands.
-- Include `sourceSHA256` for downloadable script files.
+- Include `sourceSHA256` for downloadable script files and package-owned resource files.
+- Use `packageFormatVersion` and `minimumMacPadProVersion` when a package depends on newer app behavior.
 - Do not include obfuscated scripts or hidden network calls.
 - Native Swift extension behavior must be reviewed and built with the app; MacPad Pro does not load arbitrary native third-party bundles.
+
+## Executable Gate
+
+Run the public hygiene and package validation gate before pushing:
+
+```sh
+./scripts/verify-public-repo.sh
+```
+
+Run the full release gate before publishing:
+
+```sh
+./scripts/verify-release.sh
+```
 
 ## Reporting
 

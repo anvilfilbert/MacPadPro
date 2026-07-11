@@ -46,7 +46,8 @@ public struct CFamilyCodeFormatter: CodeFormatter {
         func appendLine(_ line: String, indent: Int) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
-            lines.append(String(repeating: " ", count: max(0, indent) * 2) + trimmed)
+            let effectiveIndent = indentationLevel(for: trimmed, currentIndent: indent)
+            lines.append(String(repeating: " ", count: effectiveIndent * 2) + trimmed)
         }
 
         for character in text {
@@ -98,6 +99,38 @@ public struct CFamilyCodeFormatter: CodeFormatter {
         }
 
         appendLine(currentLine, indent: indentLevel)
-        return lines.joined(separator: "\n")
+        return combineControlContinuationLines(lines).joined(separator: "\n")
+    }
+
+    private func indentationLevel(for trimmedLine: String, currentIndent: Int) -> Int {
+        if trimmedLine.hasPrefix("#") {
+            return 0
+        }
+        if trimmedLine.hasPrefix("case ") || trimmedLine.hasPrefix("case\t") || trimmedLine.hasPrefix("default:") {
+            return max(0, currentIndent - 1)
+        }
+        return max(0, currentIndent)
+    }
+
+    private func combineControlContinuationLines(_ lines: [String]) -> [String] {
+        var combined: [String] = []
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if let previous = combined.last,
+               previous.trimmingCharacters(in: .whitespaces) == "}",
+               shouldFollowClosingBrace(trimmed) {
+                combined[combined.count - 1] = previous + " " + trimmed
+            } else {
+                combined.append(line)
+            }
+        }
+        return combined
+    }
+
+    private func shouldFollowClosingBrace(_ trimmedLine: String) -> Bool {
+        trimmedLine.hasPrefix("else")
+            || trimmedLine.hasPrefix("catch")
+            || trimmedLine.hasPrefix("finally")
+            || trimmedLine.hasPrefix("while")
     }
 }

@@ -1,7 +1,19 @@
 {
+  "packageFormatVersion": 1,
+  "minimumMacPadProVersion": "0.1.0",
   "id": "pro-themes",
   "title": "Pro Themes",
   "description": "Add Night, Paper, Terminal, Ocean, Forest, Sunset, Lavender, and High Contrast editor themes.",
-  "version": "1.0.0",
-  "kind": "theme"
+  "version": "1.0.1",
+  "kind": "theme",
+  "resources": [
+    {
+      "file": "themes.json",
+      "sourceURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/pro-themes/themes.json",
+      "sourceSHA256": "f5b2279ee3bb66b27f0866376343b2c29c7ef4b42a4433a202b50beb9033d502"
+    }
+  ],
+  "themeResource": {
+    "file": "themes.json"
+  }
 }

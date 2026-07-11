@@ -4,8 +4,11 @@ Run this checklist before publishing a release.
 
 ## Build
 
-- `swift test` passes.
+- `swift test` passes when a sanitized public `Tests/` target exists.
+- `./scripts/verify-public-repo.sh` passes.
+- `./scripts/verify-smoke.sh` passes after building.
 - `./scripts/package-release.sh` creates `dist/MacPadPro-<version>-macOS-universal.zip`.
+- `dist/MacPadPro-<version>-macOS-universal.zip.sha256` exists.
 - `codesign --verify --deep --verbose=2 "build/MacPad Pro.app"` passes.
 - The release zip contains only `MacPad Pro.app` files and no `__MACOSX` or `._*` entries.
 
@@ -47,6 +50,39 @@ Run this checklist before publishing a release.
 - `Extensions > Format As > JSON` pretty-prints valid JSON.
 - `Extensions > Format As > C / PHP / C++` formats PHP and C++ brace-style code with stable indentation.
 - Text commands work: trim trailing whitespace, sort lines, uppercase, lowercase, and pretty print JSON.
+- Pro Themes downloads `themes.json`, verifies its SHA-256 checksum, and loads colors from the package resource.
+- Deleting Pro Themes removes the local package manifest and the package-owned resource directory.
+
+## Extension Package Resources
+
+- `RepositoryExtensions/pro-themes/themes.json` contains all Pro Themes color definitions.
+- `RepositoryExtensions/pro-themes/pro-themes.macpadproext` declares `themes.json` in `resources`.
+- `./scripts/verify-public-repo.sh` rejects a missing or checksum-mismatched package resource.
+- A package with a future `packageFormatVersion` is rejected.
+- A package with a `minimumMacPadProVersion` newer than the app version is rejected.
+
+## Backup And Versions
+
+- Auto Backup remains inactive until the `auto-backup` extension is loaded and active.
+- Typing in an active document creates timestamped local snapshots no more than once per minute for the same document.
+- `Extensions > Backup > Version History` force-captures the current document before opening.
+- Restore loads the selected snapshot into the current editor.
+- Copy places the selected snapshot text on the system pasteboard.
+- Only the 20 newest snapshots are retained.
+
+## Export Tools
+
+- Export PDF creates a non-empty PDF file.
+- Export HTML creates an escaped HTML document from the current text.
+- Export Markdown writes plain Markdown text with the document line-ending mode.
+- Export RTF creates a non-empty RTF file.
+
+## Formatter Fixtures
+
+- C/PHP formatter preserves preprocessor lines at column 1.
+- C/PHP formatter keeps `} else {`, `} catch`, and `} while` continuations on one line.
+- C/PHP formatter outdents `case` and `default` labels inside `switch`.
+- Running the formatter twice on the same fixture is idempotent.
 
 ## Editing
 

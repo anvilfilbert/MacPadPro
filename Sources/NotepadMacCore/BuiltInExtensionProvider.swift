@@ -74,7 +74,7 @@ enum BuiltInExtensions {
         ExtensionContribution(catalogEntry: AICodeRefactorExtensionPackage.catalogEntry, aiTextTasks: AICodeRefactorExtensionPackage.textTasks),
         ExtensionContribution(catalogEntry: AIMeetingNotesExtensionPackage.catalogEntry, aiTextTasks: AIMeetingNotesExtensionPackage.textTasks),
         ExtensionContribution(catalogEntry: AISmartSearchExtensionPackage.catalogEntry, aiSmartSearches: AISmartSearchExtensionPackage.smartSearches),
-        ExtensionContribution(catalogEntry: ProThemesExtensionPackage.catalogEntry, themes: ProThemesExtensionPackage.themes),
+        ExtensionContribution(catalogEntry: ProThemesExtensionPackage.catalogEntry),
         ExtensionContribution(catalogEntry: MarkdownPreviewExtensionPackage.catalogEntry, markdownPreviews: MarkdownPreviewExtensionPackage.actions),
         ExtensionContribution(catalogEntry: ExportToolsExtensionPackage.catalogEntry, exportTools: ExportToolsExtensionPackage.actions),
         ExtensionContribution(catalogEntry: DocumentStatisticsExtensionPackage.catalogEntry, documentStatistics: DocumentStatisticsExtensionPackage.actions),

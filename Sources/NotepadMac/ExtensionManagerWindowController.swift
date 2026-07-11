@@ -185,13 +185,16 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         topControls.setContentHuggingPriority(.required, for: .vertical)
 
         searchField.placeholderString = "Search MacPadPro GitHub extensions"
+        searchField.setAccessibilityIdentifier("macpadpro.extensions.search")
         searchField.target = self
         searchField.action = #selector(searchCatalog(_:))
         searchField.delegate = self
 
+        refreshCatalogButton.setAccessibilityIdentifier("macpadpro.extensions.refresh-catalog")
         refreshCatalogButton.target = self
         refreshCatalogButton.action = #selector(refreshCatalog(_:))
 
+        statusLabel.setAccessibilityIdentifier("macpadpro.extensions.status")
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.lineBreakMode = .byTruncatingMiddle
 
@@ -214,6 +217,7 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         tableView.addTableColumn(makeColumn(identifier: Column.status, title: "Status", width: 120))
         tableView.usesAlternatingRowBackgroundColors = true
         tableView.allowsColumnResizing = true
+        tableView.setAccessibilityIdentifier("macpadpro.extensions.table")
         tableView.delegate = self
         tableView.dataSource = self
         scrollView.documentView = tableView
@@ -225,14 +229,19 @@ final class ExtensionManagerWindowController: NSWindowController, NSWindowDelega
         controls.alignment = .centerY
         controls.setContentHuggingPriority(.required, for: .vertical)
 
+        downloadButton.setAccessibilityIdentifier("macpadpro.extensions.download")
         downloadButton.target = self
         downloadButton.action = #selector(downloadSelectedExtension(_:))
+        loadButton.setAccessibilityIdentifier("macpadpro.extensions.load")
         loadButton.target = self
         loadButton.action = #selector(loadSelectedExtension(_:))
+        activateButton.setAccessibilityIdentifier("macpadpro.extensions.activate")
         activateButton.target = self
         activateButton.action = #selector(activateSelectedExtension(_:))
+        deactivateButton.setAccessibilityIdentifier("macpadpro.extensions.deactivate")
         deactivateButton.target = self
         deactivateButton.action = #selector(deactivateSelectedExtension(_:))
+        deleteButton.setAccessibilityIdentifier("macpadpro.extensions.delete")
         deleteButton.target = self
         deleteButton.action = #selector(deleteSelectedExtension(_:))
 

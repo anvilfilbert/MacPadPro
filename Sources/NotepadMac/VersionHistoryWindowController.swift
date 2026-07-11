@@ -85,6 +85,7 @@ final class VersionHistoryWindowController: NSWindowController, NSWindowDelegate
         tableView.dataSource = self
         tableView.delegate = self
         tableView.usesAlternatingRowBackgroundColors = true
+        tableView.setAccessibilityIdentifier("macpadpro.version-history.table")
         scrollView.documentView = tableView
         root.addArrangedSubview(scrollView)
 
@@ -114,6 +115,8 @@ final class VersionHistoryWindowController: NSWindowController, NSWindowDelegate
     private func button(title: String, action: Selector) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
         button.bezelStyle = .rounded
+        let identifierTitle = title.lowercased().replacingOccurrences(of: " ", with: "-")
+        button.setAccessibilityIdentifier("macpadpro.version-history.\(identifierTitle)")
         return button
     }
 

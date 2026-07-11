@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let clipboardSnippetsDefaultsKey = "MacPadPro.ClipboardSnippets.v1"
     private let aiAgentSettingsDefaultsKey = "MacPadPro.AIAgentSettings.v1"
     private let backupSnapshotsDefaultsKey = "MacPadPro.BackupSnapshots.v1"
+    private let autoBackupMinimumInterval: TimeInterval = 60
     private let aiAgentKeychainService = "local.macpadpro.ai-agent"
     private let aiAgentKeychainAccount = "api-token"
     private var extensionCatalog = ExtensionCatalog.default
@@ -35,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var csvTableController: TextReportWindowController?
     private var encodingController: TextReportWindowController?
     private var fileOutlineController: FileOutlineWindowController?
+    private var lastBackupSnapshotDates: [String: Date] = [:]
+    private var lastBackupSnapshotSignatures: [String: String] = [:]
+    private var pendingAutoBackupTasks: [String: Task<Void, Never>] = [:]
     private var isRestoringSession = false
 
     private var extensionRegistry: ExtensionRegistry {
@@ -117,6 +121,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         })
         controller.onClose = { [weak self, weak controller] in
             guard let controller else { return }
+            let documentID = controller.documentBrowserItem.id
+            self?.pendingAutoBackupTasks[documentID]?.cancel()
+            self?.pendingAutoBackupTasks[documentID] = nil
             self?.windows.removeAll { $0 === controller }
             self?.saveSession()
             self?.refreshDocumentBrowser()
@@ -124,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onStateChange = { [weak self] in
             self?.saveSession()
             self?.refreshDocumentBrowser()
-            self?.recordAutoBackupSnapshot(for: controller)
+            self?.recordAutoBackupSnapshot(for: controller, force: false)
             self?.refreshMarkdownPreview(for: controller)
             self?.refreshFileOutline(for: controller)
         }
@@ -381,7 +388,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showVersionHistory(_ sender: NSMenuItem) {
         guard extensionRegistry.autoBackups.contains(where: { $0.id == sender.representedObject as? String }),
               let controller = keyWindowController else { return }
-        recordAutoBackupSnapshot(for: controller)
+        recordAutoBackupSnapshot(for: controller, force: true)
         let historyController = versionHistoryController ?? VersionHistoryWindowController(
             items: versionHistoryItems(),
             restore: { [weak self] id in
@@ -629,25 +636,62 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .joined(separator: "\n")
     }
 
-    private func recordAutoBackupSnapshot(for controller: EditorWindowController?) {
+    private func recordAutoBackupSnapshot(for controller: EditorWindowController?, force: Bool) {
         guard extensionRegistry.autoBackups.isEmpty == false,
               let controller,
               !controller.documentText.isEmpty else { return }
+        let documentID = controller.documentBrowserItem.id
+        let now = Date()
+        if !force,
+           let lastSnapshotDate = lastBackupSnapshotDates[documentID],
+           now.timeIntervalSince(lastSnapshotDate) < autoBackupMinimumInterval {
+            scheduleAutoBackupSnapshot(for: controller, after: autoBackupMinimumInterval - now.timeIntervalSince(lastSnapshotDate))
+            return
+        }
+        pendingAutoBackupTasks[documentID]?.cancel()
+        pendingAutoBackupTasks[documentID] = nil
+        captureAutoBackupSnapshot(for: controller, createdAt: now)
+    }
+
+    private func scheduleAutoBackupSnapshot(for controller: EditorWindowController, after delay: TimeInterval) {
+        let documentID = controller.documentBrowserItem.id
+        pendingAutoBackupTasks[documentID]?.cancel()
+        pendingAutoBackupTasks[documentID] = Task { [weak self, weak controller] in
+            let nanoseconds = UInt64(max(0.1, delay) * 1_000_000_000)
+            try? await Task.sleep(nanoseconds: nanoseconds)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard !Task.isCancelled else { return }
+                self?.pendingAutoBackupTasks[documentID] = nil
+                self?.recordAutoBackupSnapshot(for: controller, force: true)
+            }
+        }
+    }
+
+    private func captureAutoBackupSnapshot(for controller: EditorWindowController, createdAt: Date) {
+        let documentID = controller.documentBrowserItem.id
+        let signature = "\(controller.documentDisplayName)\u{0}\(controller.documentText)"
+        if lastBackupSnapshotSignatures[documentID] == signature {
+            return
+        }
         var snapshots = loadBackupSnapshots()
         if snapshots.first?.text == controller.documentText,
            snapshots.first?.title == controller.documentDisplayName {
+            lastBackupSnapshotSignatures[documentID] = signature
             return
         }
         snapshots.insert(
             BackupSnapshot(
                 id: UUID().uuidString,
                 title: controller.documentDisplayName,
-                createdAt: Date(),
+                createdAt: createdAt,
                 text: controller.documentText
             ),
             at: 0
         )
         snapshots = Array(snapshots.prefix(20))
+        lastBackupSnapshotDates[documentID] = createdAt
+        lastBackupSnapshotSignatures[documentID] = signature
         saveBackupSnapshots(snapshots)
     }
 
@@ -1065,7 +1109,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func deleteExtension(id: String) {
         installedExtensions.delete(id)
         let packageURL = extensionPackageStore.packageURL(for: id)
+        let resourceDirectoryURL = extensionPackageStore.resourceDirectoryURL(for: id)
         try? FileManager.default.removeItem(at: packageURL)
+        try? FileManager.default.removeItem(at: resourceDirectoryURL)
         saveInstalledExtensions()
         reloadExtensions()
     }
@@ -1078,6 +1124,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !installedExtensions.isActive("ai-smart-search") {
             aiSmartSearchController?.close()
             aiSmartSearchController = nil
+        }
+        if !installedExtensions.isActive("auto-backup") {
+            for task in pendingAutoBackupTasks.values {
+                task.cancel()
+            }
+            pendingAutoBackupTasks.removeAll()
         }
         extensionManagerController?.refresh()
         rebuildMainMenu()

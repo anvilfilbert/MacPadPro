@@ -11,7 +11,7 @@ Each extension has two parts:
 - A Swift source directory inside the app source tree.
 - A repository package manifest that Extension Manager can download and validate.
 
-Script text-command extensions can also include package-owned files such as `transform.js`. Extension Manager downloads those files into the local extension package directory after validating their SHA-256 checksums.
+Extensions can also include package-owned files such as `transform.js` or `themes.json`. Extension Manager downloads those files into the local extension package directory after validating their SHA-256 checksums.
 
 Use one directory per extension:
 
@@ -34,6 +34,8 @@ Create a `.macpadproext` file in the matching repository directory:
 
 ```json
 {
+  "packageFormatVersion": 1,
+  "minimumMacPadProVersion": "0.1.0",
   "id": "word-counter",
   "title": "Word Counter",
   "description": "Show word, character, and line counts for the current document.",
@@ -51,6 +53,8 @@ The manifest must match the catalog entry exactly:
 - `kind`
 
 If these do not match, MacPad Pro rejects the package.
+
+Use `packageFormatVersion` for package schema compatibility and `minimumMacPadProVersion` when an extension requires a newer app release.
 
 Optional trust metadata is shown in Extension Manager:
 
@@ -80,6 +84,48 @@ The script file must define `transform(input)` and return replacement text:
 ```js
 function transform(input) {
   return input.toUpperCase();
+}
+```
+
+Data-driven extensions add verified resources:
+
+```json
+{
+  "resources": [
+    {
+      "file": "themes.json",
+      "sourceURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/pro-themes/themes.json",
+      "sourceSHA256": "f5b2279ee3bb66b27f0866376343b2c29c7ef4b42a4433a202b50beb9033d502"
+    }
+  ]
+}
+```
+
+Theme extensions point at the resource that contains the color definitions:
+
+```json
+{
+  "themeResource": {
+    "file": "themes.json"
+  }
+}
+```
+
+Theme JSON uses normalized RGBA color components:
+
+```json
+{
+  "themes": [
+    {
+      "id": "night",
+      "name": "Night",
+      "textColor": { "red": 0.86, "green": 0.88, "blue": 0.90, "alpha": 1.0 },
+      "backgroundColor": { "red": 0.10, "green": 0.11, "blue": 0.12, "alpha": 1.0 },
+      "insertionPointColor": { "red": 0.39, "green": 0.76, "blue": 1.0, "alpha": 1.0 },
+      "statusTextColor": { "red": 0.70, "green": 0.73, "blue": 0.76, "alpha": 1.0 },
+      "statusBackgroundColor": { "red": 0.14, "green": 0.15, "blue": 0.16, "alpha": 1.0 }
+    }
+  ]
 }
 ```
 
@@ -121,7 +167,7 @@ enum WordCounterExtensionPackage {
 }
 ```
 
-Then register the extension in `BuiltInExtensions.downloadableExtensions`.
+Then register the extension in `BuiltInExtensions.contributions`.
 
 ## Choosing An Extension Kind
 
@@ -231,7 +277,7 @@ localStorage
 networkAccess
 ```
 
-For downloadable scripts, include `sourceSHA256`. Extension Manager rejects script files whose actual checksum differs from the manifest.
+For downloadable scripts and package-owned resource files, include `sourceSHA256`. Extension Manager rejects files whose actual checksum differs from the manifest.
 
 ## Public Verification
 
@@ -241,6 +287,7 @@ Before publishing, verify:
 - Catalog search finds title, description, and kind.
 - The source directory exists and contains Swift files.
 - The repository package manifest validates against the catalog entry.
+- Package resources exist and match their declared SHA-256 checksums.
 - Activation loads the feature only when installed.
 - Deactivation hides the feature without deleting the package.
 - Script plugins execute `transform(input)` and reject invalid script packages.
@@ -274,4 +321,5 @@ Before pushing:
 - `ExtensionCatalog.default` includes the package entry.
 - README or user docs mention the extension.
 - `./scripts/verify-public-repo.sh` passes.
+- `./scripts/verify-release.sh` passes.
 - The app builds and installs locally.

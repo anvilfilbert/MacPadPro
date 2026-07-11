@@ -14,6 +14,10 @@ if grep -Eq '^Tests/' <<< "$tracked_files"; then
   fail "tracked test files must stay out of the public repository"
 fi
 
+if grep -Eq '^(\.build/|build/|dist/|DerivedData/|.*\.xcuserdata/|.*\.DS_Store$)' <<< "$tracked_files"; then
+  fail "tracked build, derived data, user state, or .DS_Store files must stay out of the public repository"
+fi
+
 personal_pattern="f""bauer|F""rank"
 path_pattern="/""Users/"
 secret_pattern="sk-""proj|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----"
@@ -21,5 +25,7 @@ secret_pattern="sk-""proj|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{20,}|github_pat_[
 if rg -n --hidden --glob '!/.git/**' --glob '!build/**' --glob '!dist/**' --glob '!.build/**' --glob '!*.xcuserstate' --glob '!*.DS_Store' --glob '!scripts/verify-public-repo.sh' "$personal_pattern|$path_pattern|$secret_pattern" .; then
   fail "personal information, local paths, or secret-like values were found"
 fi
+
+swift run MacPadProRepoCheck "$ROOT_DIR"
 
 echo "Public repository verification passed"

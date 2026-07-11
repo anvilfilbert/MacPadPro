@@ -285,6 +285,7 @@ public struct ExtensionRegistry: Sendable {
         let activeContributions = contributions.filter { installedExtensions.isActive($0.catalogEntry.id) }
         let themes = BuiltInExtensions.systemThemes
             + activeContributions.flatMap(\.themes)
+            + (packageStore?.themes(for: installedExtensions) ?? [])
         let formatters = activeContributions.flatMap(\.formatters)
         let textCommands = BuiltInExtensions.coreTextCommands
             + activeContributions.flatMap(\.textCommands)

@@ -32,6 +32,16 @@ public struct ExtensionPackageStore {
             .appendingPathComponent(scriptFile)
     }
 
+    public func resourceURL(for extensionID: String, resourceFile: String) -> URL {
+        directory
+            .appendingPathComponent(extensionID, isDirectory: true)
+            .appendingPathComponent(resourceFile)
+    }
+
+    public func resourceDirectoryURL(for extensionID: String) -> URL {
+        directory.appendingPathComponent(extensionID, isDirectory: true)
+    }
+
     public func hasPackage(for extensionID: String) -> Bool {
         FileManager.default.fileExists(atPath: packageURL(for: extensionID).path)
     }
@@ -50,6 +60,7 @@ public struct ExtensionPackageStore {
         let validator = ExtensionPackageValidator()
         try validator.validateManifest(manifest, matches: extensionItem)
         try validateInstalledScript(for: manifest, validator: validator)
+        try validateInstalledResources(for: manifest, validator: validator)
     }
 
     public func installedManifest(for extensionID: String) throws -> ExtensionPackageManifest {
@@ -80,10 +91,34 @@ public struct ExtensionPackageStore {
             }
     }
 
+    public func themes(for installedExtensions: InstalledExtensions) -> [EditorTheme] {
+        installedExtensions.installedIDs
+            .sorted()
+            .filter(installedExtensions.isActive)
+            .flatMap { extensionID in
+                guard let manifest = try? installedManifest(for: extensionID),
+                      manifest.kind == .theme,
+                      let themeResource = manifest.themeResource else { return [EditorTheme]() }
+                let validator = ExtensionPackageValidator()
+                guard (try? validateInstalledResources(for: manifest, validator: validator)) != nil else {
+                    return [EditorTheme]()
+                }
+                let themeURL = resourceURL(for: manifest.id, resourceFile: themeResource.file)
+                return (try? ThemePackageLoader().loadThemes(from: themeURL)) ?? []
+            }
+    }
+
     private func validateInstalledScript(for manifest: ExtensionPackageManifest, validator: ExtensionPackageValidator) throws {
         guard let scriptCommand = manifest.scriptCommand else { return }
         let scriptURL = scriptURL(for: manifest.id, scriptFile: scriptCommand.scriptFile)
         try validator.validateScriptFile(scriptURL, scriptCommand: scriptCommand)
+    }
+
+    private func validateInstalledResources(for manifest: ExtensionPackageManifest, validator: ExtensionPackageValidator) throws {
+        for resource in manifest.resources {
+            let resourceURL = resourceURL(for: manifest.id, resourceFile: resource.file)
+            try validator.validateResourceFile(resourceURL, resource: resource)
+        }
     }
 }
 
@@ -107,21 +142,15 @@ public struct ExtensionPackageDownloader {
             try FileManager.default.createDirectory(at: scriptDestinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try scriptData.write(to: scriptDestinationURL, options: .atomic)
         }
+        for resource in manifest.resources {
+            let resourceData = try Data(contentsOf: resource.sourceURL)
+            try validator.validateResourceData(resourceData, resource: resource)
+            let resourceDestinationURL = store.resourceURL(for: extensionItem.id, resourceFile: resource.file)
+            try FileManager.default.createDirectory(at: resourceDestinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try resourceData.write(to: resourceDestinationURL, options: .atomic)
+        }
         let destinationURL = store.packageURL(for: extensionItem.id)
         try packageData.write(to: destinationURL, options: .atomic)
         return destinationURL
     }
-}
-
-private func compareVersionStrings(_ lhs: String, _ rhs: String) -> ComparisonResult {
-    let lhsParts = lhs.split(separator: ".").map { Int($0) ?? 0 }
-    let rhsParts = rhs.split(separator: ".").map { Int($0) ?? 0 }
-    let count = max(lhsParts.count, rhsParts.count)
-    for index in 0..<count {
-        let left = index < lhsParts.count ? lhsParts[index] : 0
-        let right = index < rhsParts.count ? rhsParts[index] : 0
-        if left < right { return .orderedAscending }
-        if left > right { return .orderedDescending }
-    }
-    return .orderedSame
 }

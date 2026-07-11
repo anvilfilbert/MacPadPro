@@ -22,6 +22,7 @@ MacPad Pro is the extension-friendly edition of [MacPad](https://github.com/anvi
 - Built-in text commands: trim trailing whitespace, sort lines, uppercase, and lowercase.
 - Extension Manager for downloading, loading, activating, deactivating, and deleting Pro extensions one by one.
 - Script text-command plugins with manifest-declared permissions and SHA-256 verified package files.
+- Data-driven package resources with SHA-256 verification for extension-owned files such as theme definitions.
 - Local-first extension behavior for clipboard, snippets, backups, versions, and document tools.
 - Optional AI extensions that connect only to user-configured local or remote OpenAI-compatible agents.
 
@@ -78,7 +79,9 @@ Each extension has:
 
 Downloaded `.macpadproext` packages are stored locally in Application Support under `MacPad Pro/Extensions`. Packages are decoded and validated against the selected catalog entry before loading.
 
-Script command packages can include extra files such as `transform.js`. MacPad Pro downloads those files separately, verifies SHA-256 checksums when declared, and exposes active commands through the text-command menu.
+Packages can include extra files such as `transform.js` or `themes.json`. MacPad Pro downloads those files separately, verifies SHA-256 checksums, and loads active package resources only after validation. Pro Themes keeps its color definitions in `RepositoryExtensions/pro-themes/themes.json` so contributors can change themes in the extension package area.
+
+Package manifests can declare `packageFormatVersion` and `minimumMacPadProVersion`; incompatible packages are rejected before loading.
 
 ## AI Agent Setup
 
@@ -132,6 +135,13 @@ Verify the release path with public-repository checks, packaging, and code-signa
 ./scripts/verify-release.sh
 ```
 
+Release packaging writes:
+
+```text
+dist/MacPadPro-<version>-macOS-universal.zip
+dist/MacPadPro-<version>-macOS-universal.zip.sha256
+```
+
 ## Development
 
 Run public repository checks:
@@ -144,3 +154,5 @@ Before pushing extension changes, verify:
 
 - `./scripts/verify-release.sh`
 - `./scripts/install-app.sh` when the local `/Applications` build should be refreshed
+
+The GitHub Actions workflow template lives at `docs/GitHub-Actions-CI.yml`. To activate CI, copy it to `.github/workflows/ci.yml` using GitHub credentials with `workflow` scope.

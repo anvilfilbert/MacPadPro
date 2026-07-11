@@ -48,7 +48,8 @@ public struct RepositoryExtensionValidator: Sendable {
     public func validate(
         repositoryRoot: URL,
         catalog: ExtensionCatalog,
-        builtInCatalog: ExtensionCatalog
+        builtInCatalog: ExtensionCatalog,
+        currentMacPadProVersion: String
     ) throws -> RepositoryExtensionValidationReport {
         let repositoryIDs = Set(catalog.extensions.map(\.id))
         let builtInIDs = Set(builtInCatalog.extensions.map(\.id))
@@ -62,7 +63,11 @@ public struct RepositoryExtensionValidator: Sendable {
         }
 
         for extensionItem in catalog.extensions {
-            issues.append(contentsOf: validate(extensionItem: extensionItem, repositoryRoot: repositoryRoot))
+            issues.append(contentsOf: validate(
+                extensionItem: extensionItem,
+                repositoryRoot: repositoryRoot,
+                currentMacPadProVersion: currentMacPadProVersion
+            ))
         }
 
         let invalidIDs = Set(issues.compactMap(extensionID(from:)))
@@ -70,7 +75,11 @@ public struct RepositoryExtensionValidator: Sendable {
         return RepositoryExtensionValidationReport(validatedExtensionIDs: validatedIDs, issues: issues)
     }
 
-    private func validate(extensionItem: DownloadableExtension, repositoryRoot: URL) -> [RepositoryExtensionValidationIssue] {
+    private func validate(
+        extensionItem: DownloadableExtension,
+        repositoryRoot: URL,
+        currentMacPadProVersion: String
+    ) -> [RepositoryExtensionValidationIssue] {
         var issues: [RepositoryExtensionValidationIssue] = []
         let packageDirectory = repositoryRoot
             .appendingPathComponent("RepositoryExtensions", isDirectory: true)
@@ -101,7 +110,8 @@ public struct RepositoryExtensionValidator: Sendable {
         issues.append(contentsOf: validatePackageManifest(
             extensionItem: extensionItem,
             manifestURL: packageManifestURL,
-            packageDirectory: packageDirectory
+            packageDirectory: packageDirectory,
+            currentMacPadProVersion: currentMacPadProVersion
         ))
 
         var isSourceDirectory: ObjCBool = false
@@ -129,13 +139,15 @@ public struct RepositoryExtensionValidator: Sendable {
     private func validatePackageManifest(
         extensionItem: DownloadableExtension,
         manifestURL: URL,
-        packageDirectory: URL
+        packageDirectory: URL,
+        currentMacPadProVersion: String
     ) -> [RepositoryExtensionValidationIssue] {
         do {
             let manifestData = try Data(contentsOf: manifestURL)
             let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: manifestData)
-            try ExtensionPackageValidator().validateManifest(manifest, matches: extensionItem)
+            try ExtensionPackageValidator(currentMacPadProVersion: currentMacPadProVersion).validateManifest(manifest, matches: extensionItem)
             return validateRepositoryScriptFiles(manifest: manifest, packageDirectory: packageDirectory)
+                + validateRepositoryResourceFiles(manifest: manifest, packageDirectory: packageDirectory)
         } catch {
             return [.invalidPackageManifest(extensionID: extensionItem.id, reason: error.localizedDescription)]
         }
@@ -152,6 +164,21 @@ public struct RepositoryExtensionValidator: Sendable {
             return []
         } catch {
             return [.invalidPackageManifest(extensionID: manifest.id, reason: error.localizedDescription)]
+        }
+    }
+
+    private func validateRepositoryResourceFiles(
+        manifest: ExtensionPackageManifest,
+        packageDirectory: URL
+    ) -> [RepositoryExtensionValidationIssue] {
+        manifest.resources.flatMap { resource in
+            let resourceURL = packageDirectory.appendingPathComponent(resource.file)
+            do {
+                try ExtensionPackageValidator().validateResourceFile(resourceURL, resource: resource)
+                return [] as [RepositoryExtensionValidationIssue]
+            } catch {
+                return [.invalidPackageManifest(extensionID: manifest.id, reason: error.localizedDescription)]
+            }
         }
     }
 

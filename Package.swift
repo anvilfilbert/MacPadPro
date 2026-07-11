@@ -20,6 +20,11 @@ let package = Package(
             name: "NotepadMac",
             dependencies: ["NotepadMacCore"],
             path: "Sources/NotepadMac"
+        ),
+        .executableTarget(
+            name: "MacPadProRepoCheck",
+            dependencies: ["NotepadMacCore"],
+            path: "Sources/MacPadProRepoCheck"
         )
     ]
 )

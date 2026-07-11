@@ -22,6 +22,30 @@ RepositoryExtensions/<extension-id>/transform.js
 
 The manifest should include `scriptCommand.sourceURL` and `scriptCommand.sourceSHA256` so Extension Manager can download and verify the script before saving it locally.
 
+Data-driven extensions can declare verified resource files:
+
+```json
+{
+  "resources": [
+    {
+      "file": "themes.json",
+      "sourceURL": "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/pro-themes/themes.json",
+      "sourceSHA256": "..."
+    }
+  ]
+}
+```
+
+Theme packages also declare the resource that contains color definitions:
+
+```json
+{
+  "themeResource": {
+    "file": "themes.json"
+  }
+}
+```
+
 The `.macpadproext` manifest must match the catalog entry exactly:
 
 - `id`
@@ -29,6 +53,11 @@ The `.macpadproext` manifest must match the catalog entry exactly:
 - `description`
 - `version`
 - `kind`
+
+Manifests can also include compatibility metadata:
+
+- `packageFormatVersion`
+- `minimumMacPadProVersion`
 
 If any value differs, Extension Manager rejects the package.
 
@@ -81,5 +110,6 @@ Use these terms in extension descriptions when relevant so users can find packag
 - Add package under `RepositoryExtensions/<extension-id>/`.
 - Add catalog entry in `RepositoryExtensions/catalog.json`.
 - Add package entry to `ExtensionCatalog.default`.
+- Add SHA-256 checksums for every package-owned resource file.
 - Update `README.md` and docs when the extension adds a new user-facing capability.
-- Run `./scripts/verify-release.sh` before publishing.
+- Run `./scripts/verify-public-repo.sh` and `./scripts/verify-release.sh` before publishing.
