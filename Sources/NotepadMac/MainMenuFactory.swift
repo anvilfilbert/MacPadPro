@@ -7,7 +7,7 @@ enum MainMenuFactory {
         let mainMenu = NSMenu(title: "Main Menu")
 
         let appMenu = NSMenu(title: "MacPad Pro")
-        addItem("About MacPad Pro", to: appMenu, action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: NSApp)
+        addItem("About MacPad Pro", to: appMenu, action: #selector(AppDelegate.showAbout(_:)), target: target)
         appMenu.addItem(.separator())
         addItem("Quit MacPad Pro", to: appMenu, action: #selector(NSApplication.terminate(_:)), target: NSApp, key: "q")
         let appRoot = NSMenuItem()
