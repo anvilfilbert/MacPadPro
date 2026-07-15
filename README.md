@@ -6,7 +6,6 @@
 
 <p align="center">
   Extension-friendly macOS plain-text editor with downloadable Pro extensions.
-  MacPad Pro on [MacPad Pro on DeepWiki](https://deepwiki.com/anvilfilbert/MacPadPro)
 </p>
 
 <p align="center">
