@@ -10,6 +10,7 @@
 
 <p align="center">
   <img src="Assets/MacPadPro-Preview.png" alt="MacPad Pro editor and extension manager preview" width="894">
+  MacPad Pro on [DeepWiki](https://deepwiki.com/anvilfilbert/MacPadPro/)
 </p>
 
 MacPad Pro is the extension-friendly edition of [MacPad](https://github.com/anvilfilbert/MacPad). MacPad stays small and Notepad-like. MacPad Pro is where optional themes, tools, formatters, panels, and AI-agent workflows can grow without changing the simple app.
