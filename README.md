@@ -105,6 +105,7 @@ Public hosted AI endpoints normally require tokens even for free tiers. The no-t
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
+- [DeepWiki](https://deepwiki.com/anvilfilbert/MacPadPro)
 
 ## Build
 
