@@ -11,10 +11,10 @@ CHECKSUM_PATH="$ZIP_PATH.sha256"
 
 cd "$ROOT_DIR"
 
-if [[ -d "$ROOT_DIR/Tests" ]]; then
+if /usr/bin/grep -q "\.testTarget" "$ROOT_DIR/Package.swift"; then
   swift test
 else
-  echo "No public Tests directory; skipping swift test"
+  echo "No public test target; skipping swift test"
 fi
 "$ROOT_DIR/scripts/verify-public-repo.sh"
 "$ROOT_DIR/scripts/package-release.sh"

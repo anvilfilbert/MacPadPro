@@ -20,7 +20,7 @@ Extensions can include extra package-owned files in the same directory. Script t
 RepositoryExtensions/<extension-id>/transform.js
 ```
 
-The manifest should include `scriptCommand.sourceURL` and `scriptCommand.sourceSHA256` so Extension Manager can download and verify the script before saving it locally.
+The manifest must include `scriptCommand.sourceURL` and `scriptCommand.sourceSHA256` so Extension Manager can download and verify the script before saving it locally.
 
 Data-driven extensions can declare verified resource files:
 
@@ -108,7 +108,7 @@ Use these terms in extension descriptions when relevant so users can find packag
 
 - Add source under `Sources/NotepadMacCore/Extensions/<extension-id>/`.
 - Add package under `RepositoryExtensions/<extension-id>/`.
-- Add catalog entry in `RepositoryExtensions/catalog.json`.
+- Add catalog entry in `RepositoryExtensions/catalog.json` and update the pinned catalog SHA-256 before release.
 - Add package entry to `ExtensionCatalog.default`.
 - Add SHA-256 checksums for every package-owned resource file.
 - Update `README.md` and docs when the extension adds a new user-facing capability.

@@ -4,14 +4,44 @@ public enum ExtensionRepository {
     public static let macPadProGitHubCatalogURL = URL(
         string: "https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/catalog.json"
     )!
+    public static let macPadProGitHubCatalogSHA256 = "cb5a2479110c8907daf153b6dadff2f2f88e48ba8add80ec981a611d09ef2873"
 }
 
-public struct ExtensionRepositoryCatalogLoader {
-    public init() {}
+public enum ExtensionDownloadLimits {
+    public static let catalogBytes = 512 * 1024
+    public static let packageBytes = 128 * 1024
+    public static let scriptBytes = 256 * 1024
+    public static let resourceBytes = 1024 * 1024
+    public static let timeout: TimeInterval = 20
+}
+
+public struct ExtensionRepositoryCatalogLoader: Sendable {
+    private let dataLoader: BoundedDataLoader
+
+    public init(dataLoader: BoundedDataLoader = BoundedDataLoader()) {
+        self.dataLoader = dataLoader
+    }
 
     public func loadCatalog(from url: URL = ExtensionRepository.macPadProGitHubCatalogURL) throws -> ExtensionCatalog {
-        let catalogData = try Data(contentsOf: url)
+        let catalogData = try dataLoader.load(
+            from: url,
+            maxBytes: ExtensionDownloadLimits.catalogBytes,
+            timeout: ExtensionDownloadLimits.timeout
+        )
+        if url == ExtensionRepository.macPadProGitHubCatalogURL {
+            try validatePinnedCatalogData(catalogData)
+        }
         return try JSONDecoder().decode(ExtensionCatalog.self, from: catalogData)
+    }
+
+    private func validatePinnedCatalogData(_ catalogData: Data) throws {
+        let actualSHA256 = sha256Hex(for: catalogData)
+        guard actualSHA256.caseInsensitiveCompare(ExtensionRepository.macPadProGitHubCatalogSHA256) == .orderedSame else {
+            throw ExtensionPackageDownloadError.catalogChecksumMismatch(
+                expectedSHA256: ExtensionRepository.macPadProGitHubCatalogSHA256,
+                actualSHA256: actualSHA256
+            )
+        }
     }
 }
 
@@ -122,12 +152,20 @@ public struct ExtensionPackageStore {
     }
 }
 
-public struct ExtensionPackageDownloader {
-    public init() {}
+public struct ExtensionPackageDownloader: Sendable {
+    private let dataLoader: BoundedDataLoader
+
+    public init(dataLoader: BoundedDataLoader = BoundedDataLoader()) {
+        self.dataLoader = dataLoader
+    }
 
     @discardableResult
     public func download(_ extensionItem: DownloadableExtension, into directory: URL) throws -> URL {
-        let packageData = try Data(contentsOf: extensionItem.downloadURL)
+        let packageData = try dataLoader.load(
+            from: extensionItem.downloadURL,
+            maxBytes: ExtensionDownloadLimits.packageBytes,
+            timeout: ExtensionDownloadLimits.timeout
+        )
         let manifest = try JSONDecoder().decode(ExtensionPackageManifest.self, from: packageData)
         let validator = ExtensionPackageValidator()
         try validator.validateManifest(manifest, matches: extensionItem)
@@ -136,14 +174,22 @@ public struct ExtensionPackageDownloader {
         let store = ExtensionPackageStore(directory: directory)
         if let scriptCommand = manifest.scriptCommand,
            let sourceURL = scriptCommand.sourceURL {
-            let scriptData = try Data(contentsOf: sourceURL)
+            let scriptData = try dataLoader.load(
+                from: sourceURL,
+                maxBytes: ExtensionDownloadLimits.scriptBytes,
+                timeout: ExtensionDownloadLimits.timeout
+            )
             try validator.validateScriptData(scriptData, scriptCommand: scriptCommand)
             let scriptDestinationURL = store.scriptURL(for: extensionItem.id, scriptFile: scriptCommand.scriptFile)
             try FileManager.default.createDirectory(at: scriptDestinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try scriptData.write(to: scriptDestinationURL, options: .atomic)
         }
         for resource in manifest.resources {
-            let resourceData = try Data(contentsOf: resource.sourceURL)
+            let resourceData = try dataLoader.load(
+                from: resource.sourceURL,
+                maxBytes: ExtensionDownloadLimits.resourceBytes,
+                timeout: ExtensionDownloadLimits.timeout
+            )
             try validator.validateResourceData(resourceData, resource: resource)
             let resourceDestinationURL = store.resourceURL(for: extensionItem.id, resourceFile: resource.file)
             try FileManager.default.createDirectory(at: resourceDestinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)

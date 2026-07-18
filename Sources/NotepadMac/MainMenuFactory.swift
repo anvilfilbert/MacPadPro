@@ -56,7 +56,8 @@ enum MainMenuFactory {
         addItem("Go To...", to: editMenu, action: #selector(AppDelegate.goToLine(_:)), target: target, key: "l")
         editMenu.addItem(.separator())
         addItem("Select All", to: editMenu, action: #selector(NSText.selectAll(_:)), target: nil, key: "a")
-        addItem("Time/Date", to: editMenu, action: #selector(AppDelegate.insertTimeDate(_:)), target: target, key: "t", modifiers: [])
+        let f5Key = String(UnicodeScalar(NSF5FunctionKey)!)
+        addItem("Time/Date", to: editMenu, action: #selector(AppDelegate.insertTimeDate(_:)), target: target, key: f5Key, modifiers: [])
         mainMenu.addItem(rootItem(for: editMenu))
 
         let formatMenu = NSMenu(title: "Format")
@@ -67,6 +68,7 @@ enum MainMenuFactory {
         let extensionsMenu = NSMenu(title: "Extensions")
         addItem("Manage Extensions...", to: extensionsMenu, action: #selector(AppDelegate.showExtensionManager(_:)), target: target)
         addItem("AI Agent Settings...", to: extensionsMenu, action: #selector(AppDelegate.showAIAgentSettings(_:)), target: target)
+        addItem("Clear Local Extension Data...", to: extensionsMenu, action: #selector(AppDelegate.clearLocalExtensionData(_:)), target: target)
         extensionsMenu.addItem(.separator())
 
         if !extensionRegistry.aiTextTasks.isEmpty || !extensionRegistry.aiSmartSearches.isEmpty {

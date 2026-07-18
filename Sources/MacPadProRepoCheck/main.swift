@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import NotepadMacCore
 
@@ -13,6 +14,13 @@ let infoPlistURL = repositoryRoot
 
 do {
     let catalogData = try Data(contentsOf: catalogURL)
+    let catalogSHA256 = SHA256.hash(data: catalogData).map { String(format: "%02x", $0) }.joined()
+    guard catalogSHA256.caseInsensitiveCompare(ExtensionRepository.macPadProGitHubCatalogSHA256) == .orderedSame else {
+        throw ExtensionPackageDownloadError.catalogChecksumMismatch(
+            expectedSHA256: ExtensionRepository.macPadProGitHubCatalogSHA256,
+            actualSHA256: catalogSHA256
+        )
+    }
     let catalog = try JSONDecoder().decode(ExtensionCatalog.self, from: catalogData)
     let infoPlistData = try Data(contentsOf: infoPlistURL)
     let infoPlist = try PropertyListSerialization.propertyList(from: infoPlistData, options: [], format: nil)

@@ -7,10 +7,13 @@ public enum ExtensionPackageDownloadError: LocalizedError, Equatable {
     case incompatibleAppVersion(extensionID: String, minimumMacPadProVersion: String, currentMacPadProVersion: String)
     case invalidPackageFilePath(file: String)
     case themeResourceMissing(resourceFile: String)
+    case scriptSourceMissing(scriptFile: String)
+    case scriptChecksumMissing(scriptFile: String)
     case scriptFileMissing(scriptFile: String)
     case resourceFileMissing(resourceFile: String)
     case resourceChecksumMismatch(expectedSHA256: String, actualSHA256: String, resourceFile: String)
     case scriptChecksumMismatch(expectedSHA256: String, actualSHA256: String, scriptFile: String)
+    case catalogChecksumMismatch(expectedSHA256: String, actualSHA256: String)
 
     public var errorDescription: String? {
         switch self {
@@ -24,6 +27,10 @@ public enum ExtensionPackageDownloadError: LocalizedError, Equatable {
             "Package file path '\(file)' is invalid. Package files must be simple file names inside the extension directory."
         case let .themeResourceMissing(resourceFile):
             "Theme resource '\(resourceFile)' is not declared in the package resources list."
+        case let .scriptSourceMissing(scriptFile):
+            "Script '\(scriptFile)' must declare a sourceURL so Extension Manager can download reviewed package-owned code."
+        case let .scriptChecksumMissing(scriptFile):
+            "Script '\(scriptFile)' must declare sourceSHA256. Downloaded script commands are rejected without a checksum."
         case let .scriptFileMissing(scriptFile):
             "Script '\(scriptFile)' is missing from the local extension package."
         case let .resourceFileMissing(resourceFile):
@@ -32,6 +39,8 @@ public enum ExtensionPackageDownloadError: LocalizedError, Equatable {
             "Resource '\(resourceFile)' checksum mismatch. Expected SHA-256 \(expectedSHA256), got \(actualSHA256)."
         case let .scriptChecksumMismatch(expectedSHA256, actualSHA256, scriptFile):
             "Script '\(scriptFile)' checksum mismatch. Expected SHA-256 \(expectedSHA256), got \(actualSHA256)."
+        case let .catalogChecksumMismatch(expectedSHA256, actualSHA256):
+            "Extension catalog checksum mismatch. Expected SHA-256 \(expectedSHA256), got \(actualSHA256)."
         }
     }
 }
@@ -88,13 +97,17 @@ public struct ExtensionPackageValidator: Sendable {
         guard FileManager.default.fileExists(atPath: scriptURL.path) else {
             throw ExtensionPackageDownloadError.scriptFileMissing(scriptFile: scriptCommand.scriptFile)
         }
-        guard let expectedSHA256 = scriptCommand.sourceSHA256 else { return }
+        guard let expectedSHA256 = scriptCommand.sourceSHA256, !expectedSHA256.isEmpty else {
+            throw ExtensionPackageDownloadError.scriptChecksumMissing(scriptFile: scriptCommand.scriptFile)
+        }
         let scriptData = try Data(contentsOf: scriptURL)
         try validateScriptData(scriptData, scriptCommand: scriptCommand, expectedSHA256: expectedSHA256)
     }
 
     public func validateScriptData(_ scriptData: Data, scriptCommand: ExtensionScriptCommand) throws {
-        guard let expectedSHA256 = scriptCommand.sourceSHA256 else { return }
+        guard let expectedSHA256 = scriptCommand.sourceSHA256, !expectedSHA256.isEmpty else {
+            throw ExtensionPackageDownloadError.scriptChecksumMissing(scriptFile: scriptCommand.scriptFile)
+        }
         try validateScriptData(scriptData, scriptCommand: scriptCommand, expectedSHA256: expectedSHA256)
     }
 
@@ -130,6 +143,12 @@ public struct ExtensionPackageValidator: Sendable {
     private func validatePackageFileReferences(_ manifest: ExtensionPackageManifest) throws {
         if let scriptCommand = manifest.scriptCommand {
             try validatePackageFilePath(scriptCommand.scriptFile)
+            guard scriptCommand.sourceURL != nil else {
+                throw ExtensionPackageDownloadError.scriptSourceMissing(scriptFile: scriptCommand.scriptFile)
+            }
+            guard let sourceSHA256 = scriptCommand.sourceSHA256, !sourceSHA256.isEmpty else {
+                throw ExtensionPackageDownloadError.scriptChecksumMissing(scriptFile: scriptCommand.scriptFile)
+            }
         }
         for resource in manifest.resources {
             try validatePackageFilePath(resource.file)

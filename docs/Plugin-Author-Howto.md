@@ -247,7 +247,7 @@ localStorage
 networkAccess
 ```
 
-Script packages should include `sourceSHA256`. MacPad Pro validates downloaded script content before saving it locally.
+Script packages must include `sourceURL` and `sourceSHA256`. MacPad Pro rejects downloaded script commands without checksums and validates script content before saving it locally.
 
 ## Public Verification
 
@@ -294,7 +294,7 @@ Then open MacPad Pro and verify:
 
 Commit the source directory, repository package directory, catalog update, and documentation together.
 
-After pushing to GitHub, users can refresh the extension catalog inside MacPad Pro and download the plugin one by one.
+After pushing to GitHub and releasing an app build with the updated pinned catalog SHA-256, users can refresh the extension catalog inside MacPad Pro and download the plugin one by one.
 
 If the extension adds a new category or notable capability, update:
 

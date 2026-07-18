@@ -2,6 +2,8 @@
 
 Review date: 2026-07-18
 
+Remediation status: implemented in the MacPad Pro 0.2.0 security hardening release. See `SECURITY_CHANGELOG.md` for the release-level fix list. The findings below are retained as the review artifact that drove the work.
+
 Scope: MacPad Pro Swift/AppKit desktop app, downloadable extension package flow, AI agent integration, local persistence, and release/public-repository gates.
 
 ## Executive Summary

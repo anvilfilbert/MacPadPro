@@ -457,6 +457,10 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSText
         notifyStateChanged()
     }
 
+    func removeFromSessionRestore() {
+        shouldRestoreInSession = false
+    }
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         confirmDiscardIfNeeded()
     }

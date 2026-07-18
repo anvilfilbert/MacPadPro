@@ -277,7 +277,7 @@ localStorage
 networkAccess
 ```
 
-For downloadable scripts and package-owned resource files, include `sourceSHA256`. Extension Manager rejects files whose actual checksum differs from the manifest.
+For downloadable scripts and package-owned resource files, include `sourceSHA256`. Extension Manager rejects script packages without checksums and rejects files whose actual checksum differs from the manifest.
 
 ## Public Verification
 

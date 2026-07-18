@@ -8,7 +8,8 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "MacPadPro", targets: ["NotepadMac"])
+        .executable(name: "MacPadPro", targets: ["NotepadMac"]),
+        .executable(name: "MacPadProScriptRunner", targets: ["MacPadProScriptRunner"])
     ],
     targets: [
         .target(
@@ -25,6 +26,10 @@ let package = Package(
             name: "MacPadProRepoCheck",
             dependencies: ["NotepadMacCore"],
             path: "Sources/MacPadProRepoCheck"
+        ),
+        .executableTarget(
+            name: "MacPadProScriptRunner",
+            path: "Sources/MacPadProScriptRunner"
         )
     ]
 )

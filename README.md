@@ -21,8 +21,9 @@ MacPad Pro is the extension-friendly edition of [MacPad](https://github.com/anvi
 - Syntax coloring for PHP and C-family files, including comments, strings, keywords, numbers, PHP variables, and PHP open tags.
 - Built-in text commands: trim trailing whitespace, sort lines, uppercase, and lowercase.
 - Extension Manager for downloading, loading, activating, deactivating, and deleting Pro extensions one by one.
-- Script text-command plugins with manifest-declared permissions and SHA-256 verified package files.
+- Script text-command plugins with manifest-declared permissions, required SHA-256 checksums, size limits, and an isolated runner process.
 - Data-driven package resources with SHA-256 verification for extension-owned files such as theme definitions.
+- Pinned GitHub extension catalog checksum so mutable catalog changes require a matching app release.
 - Local-first extension behavior for clipboard, snippets, backups, versions, and document tools.
 - Optional AI extensions that connect only to user-configured local or remote OpenAI-compatible agents.
 
@@ -63,11 +64,13 @@ MacPad Pro publishes its downloadable extension catalog from this repository:
 RepositoryExtensions/catalog.json
 ```
 
-The app reads the raw GitHub catalog URL:
+The app reads the raw GitHub catalog URL and verifies it against the catalog SHA-256 pinned in the released app:
 
 ```text
 https://raw.githubusercontent.com/anvilfilbert/MacPadPro/main/RepositoryExtensions/catalog.json
 ```
+
+When `RepositoryExtensions/catalog.json` changes, update `ExtensionRepository.macPadProGitHubCatalogSHA256` in `Sources/NotepadMacCore/ExtensionCatalogTransport.swift` before releasing the app.
 
 Each extension has:
 
@@ -79,13 +82,13 @@ Each extension has:
 
 Downloaded `.macpadproext` packages are stored locally in Application Support under `MacPad Pro/Extensions`. Packages are decoded and validated against the selected catalog entry before loading.
 
-Packages can include extra files such as `transform.js` or `themes.json`. MacPad Pro downloads those files separately, verifies SHA-256 checksums, and loads active package resources only after validation. Pro Themes keeps its color definitions in `RepositoryExtensions/pro-themes/themes.json` so contributors can change themes in the extension package area.
+Packages can include extra files such as `transform.js` or `themes.json`. MacPad Pro downloads those files separately with size and timeout limits, verifies SHA-256 checksums, and loads active package resources only after validation. Script command packages must declare `sourceURL` and `sourceSHA256`. Pro Themes keeps its color definitions in `RepositoryExtensions/pro-themes/themes.json` so contributors can change themes in the extension package area.
 
 Package manifests can declare `packageFormatVersion` and `minimumMacPadProVersion`; incompatible packages are rejected before loading.
 
 ## AI Agent Setup
 
-AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials. AI calls are explicit user actions and do not run in the background.
+AI extensions require a user-configured local or remote OpenAI-compatible agent. MacPad Pro does not ship with built-in AI credentials. AI calls are explicit user actions and do not run in the background. AI Smart Search warns before sending open-document snippets to non-local endpoints.
 
 `Extensions > AI Agent Settings...` includes provider presets:
 
@@ -104,6 +107,7 @@ Public hosted AI endpoints normally require tokens even for free tiers. The no-t
 - [Repository Extension Catalog](RepositoryExtensions/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
+- [Security Changelog](SECURITY_CHANGELOG.md)
 - [Changelog](CHANGELOG.md)
 - [DeepWiki](https://deepwiki.com/anvilfilbert/MacPadPro)
 
@@ -130,6 +134,8 @@ Create a release zip with:
 ```sh
 ./scripts/package-release.sh
 ```
+
+Optional public release signing uses `CODESIGN_IDENTITY`. Optional notarization uses `NOTARIZE=1`, `APPLE_ID`, `APPLE_TEAM_ID`, and `APPLE_APP_SPECIFIC_PASSWORD`. Local development builds continue to use ad-hoc signing by default.
 
 Verify the release path with public-repository checks, packaging, and code-signature checks:
 

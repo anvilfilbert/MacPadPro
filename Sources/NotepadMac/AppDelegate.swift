@@ -296,7 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc func showAISmartSearch(_ sender: NSMenuItem) {
         guard extensionRegistry.aiSmartSearches.contains(where: { $0.id == sender.representedObject as? String }) else { return }
-        guard requireAIAgentConfiguration() != nil else { return }
+        guard let configuration = requireAIAgentConfiguration(), confirmAISmartSearchUpload(configuration: configuration) else { return }
 
         let controller = aiSmartSearchController ?? AISmartSearchWindowController(
             runSearch: { [weak self] query in
@@ -348,6 +348,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardSlots.clearAll()
         saveClipboardSlots()
     }
+
+    @objc func clearLocalExtensionData(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Clear Local Extension Data?"
+        alert.informativeText = "This deletes local clipboard slots, snippets, backup snapshots, and saved session text. Installed extensions and AI settings stay unchanged."
+        alert.addButton(withTitle: "Clear")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        windows.forEach { $0.removeFromSessionRestore() }
+        UserDefaults.standard.removeObject(forKey: clipboardSlotsDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: clipboardSnippetsDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: backupSnapshotsDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: sessionDefaultsKey)
+        clipboardSlots = ClipboardSlotStore(slotCount: 10)
+        clipboardSnippetStore = ClipboardSnippetStore(recent: [], pinned: [])
+        lastBackupSnapshotDates.removeAll()
+        lastBackupSnapshotSignatures.removeAll()
+        versionHistoryController?.close()
+        versionHistoryController = nil
+        clipboardSnippetsController?.close()
+        clipboardSnippetsController = nil
+        saveSession()
+    }
+
     @objc func showMarkdownPreview(_ sender: NSMenuItem) {
         guard extensionRegistry.markdownPreviews.contains(where: { $0.id == sender.representedObject as? String }),
               let controller = keyWindowController else { return }
@@ -966,21 +992,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func saveAIAgentConfiguration(_ configuration: AIAgentConfiguration?) {
-        guard let configuration else {
-            UserDefaults.standard.removeObject(forKey: aiAgentSettingsDefaultsKey)
-            saveAIAgentToken(nil)
-            return
-        }
+        do {
+            guard let configuration else {
+                UserDefaults.standard.removeObject(forKey: aiAgentSettingsDefaultsKey)
+                try saveAIAgentToken(nil)
+                return
+            }
 
-        let stored = StoredAIAgentSettings(
-            endpointURLString: configuration.endpointURL.absoluteString,
-            modelName: configuration.modelName,
-            responseMode: configuration.responseMode
-        )
-        if let data = try? JSONEncoder().encode(stored) {
+            let stored = StoredAIAgentSettings(
+                endpointURLString: configuration.endpointURL.absoluteString,
+                modelName: configuration.modelName,
+                responseMode: configuration.responseMode
+            )
+            let data = try JSONEncoder().encode(stored)
             UserDefaults.standard.set(data, forKey: aiAgentSettingsDefaultsKey)
+            try saveAIAgentToken(configuration.apiToken)
+        } catch {
+            showError("Could not save AI agent settings.", detail: error.localizedDescription)
         }
-        saveAIAgentToken(configuration.apiToken)
     }
 
     private func requireAIAgentConfiguration() -> AIAgentConfiguration? {
@@ -992,6 +1021,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
         }
         return configuration
+    }
+
+    private func confirmAISmartSearchUpload(configuration: AIAgentConfiguration) -> Bool {
+        guard !configuration.endpointURL.isLocalhost else { return true }
+        let documentCount = windows.count
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Send Open Document Snippets?"
+        alert.informativeText = "AI Smart Search will send snippets from \(documentCount) open document(s) to \(configuration.endpointURL.host ?? configuration.endpointURL.absoluteString). Continue only if this endpoint is trusted."
+        alert.addButton(withTitle: "Continue")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     private func showAIProgress(title: String) -> AIProgressWindowController {
@@ -1090,18 +1131,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return String(data: data, encoding: .utf8)
     }
 
-    private func saveAIAgentToken(_ token: String?) {
+    private func saveAIAgentToken(_ token: String?) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: aiAgentKeychainService,
             kSecAttrAccount as String: aiAgentKeychainAccount
         ]
-        SecItemDelete(query as CFDictionary)
+        let deleteStatus = SecItemDelete(query as CFDictionary)
+        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+            throw KeychainTokenError.deleteFailed(status: deleteStatus)
+        }
 
         guard let token, !token.isEmpty, let data = token.data(using: .utf8) else { return }
         var item = query
         item[kSecValueData as String] = data
-        SecItemAdd(item as CFDictionary, nil)
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        let addStatus = SecItemAdd(item as CFDictionary, nil)
+        guard addStatus == errSecSuccess else {
+            throw KeychainTokenError.addFailed(status: addStatus)
+        }
     }
 
     private func refreshExtensionCatalogFromRepository() throws -> ExtensionCatalog {
@@ -1190,6 +1238,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = message
         alert.informativeText = detail
         alert.runModal()
+    }
+}
+
+private extension URL {
+    var isLocalhost: Bool {
+        guard let host = host?.lowercased() else { return false }
+        return host == "localhost" || host == "127.0.0.1" || host == "::1"
+    }
+}
+
+private enum KeychainTokenError: LocalizedError {
+    case deleteFailed(status: OSStatus)
+    case addFailed(status: OSStatus)
+
+    var errorDescription: String? {
+        switch self {
+        case let .deleteFailed(status):
+            "Could not delete the previous Keychain token. Security status: \(status)."
+        case let .addFailed(status):
+            "Could not save the AI token to Keychain. Security status: \(status)."
+        }
     }
 }
 
