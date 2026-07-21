@@ -20,10 +20,12 @@ fi
 
 personal_pattern="f""bauer|F""rank"
 path_pattern="/""Users/"
-secret_pattern="sk-""proj|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+email_pattern="[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+private_ip_pattern="192\.168\.[0-9]{1,3}\.[0-9]{1,3}|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}"
+secret_pattern="sk-""proj|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{20,}|gho_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----"
 
-if rg -n --hidden --glob '!/.git/**' --glob '!build/**' --glob '!dist/**' --glob '!.build/**' --glob '!*.xcuserstate' --glob '!*.DS_Store' --glob '!scripts/verify-public-repo.sh' "$personal_pattern|$path_pattern|$secret_pattern" .; then
-  fail "personal information, local paths, or secret-like values were found"
+if rg -n --hidden --glob '!/.git/**' --glob '!build/**' --glob '!dist/**' --glob '!.build/**' --glob '!*.xcuserstate' --glob '!*.DS_Store' --glob '!scripts/verify-public-repo.sh' "$personal_pattern|$path_pattern|$email_pattern|$private_ip_pattern|$secret_pattern" .; then
+  fail "personal information, local paths, private IPs, emails, or secret-like values were found"
 fi
 
 swift run MacPadProRepoCheck "$ROOT_DIR"

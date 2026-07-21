@@ -24,6 +24,14 @@ test -f "$ZIP_PATH"
 test -f "$CHECKSUM_PATH"
 "$ROOT_DIR/scripts/verify-smoke.sh"
 
+privacy_pattern="f""bauer|F""rank|/""Users/|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|sk-""proj|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9_]{20,}|gho_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[A-Za-z0-9_-]{20,}|BEGIN [A-Z ]*PRIVATE KEY"
+for executable in "$APP_DIR/Contents/MacOS/MacPadPro" "$APP_DIR/Contents/MacOS/MacPadProScriptRunner"; do
+  if /usr/bin/strings "$executable" | /usr/bin/grep -Eq "$privacy_pattern"; then
+    echo "Release executable contains private information or secret-like values: $executable" >&2
+    exit 1
+  fi
+done
+
 while IFS= read -r entry; do
   case "$entry" in
     "__MACOSX/"*|*"/__MACOSX/"*|"._"*|*"/._"*)

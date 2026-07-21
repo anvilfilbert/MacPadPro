@@ -32,6 +32,7 @@ AI extensions must not ship built-in credentials. Users configure their own loca
 - Do not include obfuscated scripts or hidden network calls.
 - Native Swift extension behavior must be reviewed and built with the app; MacPad Pro does not load arbitrary native third-party bundles.
 - Update the pinned catalog SHA-256 in app source whenever `RepositoryExtensions/catalog.json` changes.
+- Public checks reject local user names, local paths, private IP addresses, emails, and common token/key formats before release.
 
 ## Executable Gate
 

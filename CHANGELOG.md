@@ -12,6 +12,7 @@
 - Hardened AI token Keychain writes with explicit status checks and an accessibility class.
 - Added optional Developer ID signing and notarization support for release packaging.
 - Fixed the Time/Date shortcut so plain `t` no longer triggers a menu command while typing.
+- Expanded public hygiene checks for names, local paths, private IP addresses, emails, token-like values, and release binary strings.
 
 - Added MacPad Pro About credits with links to the creator profile and public repository.
 - Hardened extension packages with manifest compatibility checks, resource SHA-256 validation, and package-owned resource cleanup.
